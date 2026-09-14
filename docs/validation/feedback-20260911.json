@@ -1,0 +1,665 @@
+{
+  "date": "2026-09-11",
+  "tests": {
+    "fullPassed": 207,
+    "fullFailed": 0,
+    "finalFocusedPassed": 15
+  },
+  "combatBrowser": {
+    "knife": {
+      "shot": {
+        "weapon": "knife",
+        "shotId": 0,
+        "heavy": true,
+        "backstab": false,
+        "zoomLevel": 0,
+        "accuracy": 0,
+        "rewindMs": 113,
+        "aim": {
+          "yaw": 0,
+          "pitch": 0
+        },
+        "origin": {
+          "x": 7.039283588913236,
+          "y": 1.610403892293059,
+          "z": 2.7260296366471164
+        },
+        "end": {
+          "x": 7.330482344353451,
+          "y": 1.610403892293059,
+          "z": 2.0049094458016334
+        },
+        "hitId": "b_1",
+        "at": 10734.299999999814
+      },
+      "audio": {
+        "drawCount": 7,
+        "lastDraw": {
+          "weapon": "knife",
+          "bank": "knifeDraw",
+          "at": 8.4
+        },
+        "heavySwingCount": 1,
+        "lastKnife": {
+          "kind": "heavyHit",
+          "bank": "knifeHeavyHit",
+          "at": 8.64
+        }
+      },
+      "viewModel": {
+        "id": "knife",
+        "skinId": "karambit-sapphire",
+        "waiting": false,
+        "visible": true,
+        "action": "heavy"
+      },
+      "target": [
+        {
+          "x": 7.612,
+          "z": 1.725,
+          "health": 45
+        }
+      ]
+    },
+    "cards": {
+      "count": "3",
+      "kinds": [
+        "headshot",
+        "knife",
+        "hegrenade"
+      ],
+      "roundKills": 3,
+      "time": 10820.899999999441
+    },
+    "stairs": {
+      "x": 7.200469931474562,
+      "y": 2.483744168290093,
+      "z": -47.529251766668466,
+      "jumpId": 0,
+      "movement": {
+        "pending": 4,
+        "unsent": 0,
+        "ack": 190,
+        "nextId": 194,
+        "corrections": 0,
+        "maxCorrection": 0,
+        "offset": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "stepMs": 16.666666666666668
+      }
+    },
+    "errors": [],
+    "failures": []
+  },
+  "utilityBrowser": {
+    "movingThrow": {
+      "before": 2.5770319364106227,
+      "release": -3.83986352495082,
+      "after": -7.490165476513217,
+      "speed": 5.461023476629823
+    },
+    "models": [
+      {
+        "id": "flashbang",
+        "viewModel": {
+          "id": "flashbang",
+          "skinId": "flashbang",
+          "waiting": false,
+          "visible": true,
+          "action": "holdLow"
+        },
+        "mode": "drop"
+      },
+      {
+        "id": "smokegrenade",
+        "viewModel": {
+          "id": "smokegrenade",
+          "skinId": "smokegrenade",
+          "waiting": false,
+          "visible": true,
+          "action": "holdLow"
+        },
+        "mode": "drop"
+      },
+      {
+        "id": "decoy",
+        "viewModel": {
+          "id": "decoy",
+          "skinId": "decoy",
+          "waiting": false,
+          "visible": true,
+          "action": "holdLow"
+        },
+        "mode": "drop"
+      },
+      {
+        "id": "incgrenade",
+        "viewModel": {
+          "id": "incgrenade",
+          "skinId": "incgrenade",
+          "waiting": false,
+          "visible": true,
+          "action": "holdLow"
+        },
+        "mode": "drop"
+      },
+      {
+        "id": "molotov",
+        "viewModel": {
+          "id": "molotov",
+          "skinId": "molotov",
+          "waiting": false,
+          "visible": true,
+          "action": "holdLow"
+        },
+        "mode": "drop"
+      }
+    ],
+    "fire": [
+      {
+        "weapon": "molotov",
+        "cells": 53,
+        "remaining": 6.955
+      }
+    ],
+    "plant": {
+      "start": {
+        "x": -39.73831055879785,
+        "y": 0.13194229436367705,
+        "z": -67.37285898025772
+      },
+      "mid": {
+        "x": -39.73831055879785,
+        "y": 0.13194229436367705,
+        "z": -67.37285898025772
+      },
+      "crouch": true,
+      "height": 0.95,
+      "progress": 0.46666666666666684,
+      "aim": {
+        "yaw": -0.0614355896702004,
+        "pitch": 0.034557519189487726
+      }
+    },
+    "defuse": {
+      "crouch": true,
+      "height": 0.95,
+      "progress": 0.45333333333333276,
+      "duration": 5,
+      "kit": true,
+      "aim": {
+        "yaw": -0.0921533845053006,
+        "pitch": 0.0460766922526503
+      }
+    },
+    "kit": {
+      "equipped": true,
+      "dropped": 0
+    },
+    "shop": [
+      {
+        "id": "hegrenade",
+        "name": "高爆手雷",
+        "price": "$300 · 免费"
+      },
+      {
+        "id": "flashbang",
+        "name": "闪光弹",
+        "price": "$200 · 免费"
+      },
+      {
+        "id": "smokegrenade",
+        "name": "烟雾弹",
+        "price": "$300 · 免费"
+      },
+      {
+        "id": "incgrenade",
+        "name": "燃烧弹",
+        "price": "$500 · 免费"
+      },
+      {
+        "id": "decoy",
+        "name": "诱饵弹",
+        "price": "$50 · 免费"
+      }
+    ],
+    "errors": [],
+    "failures": []
+  },
+  "stairs": {
+    "syntheticFixtures": 135,
+    "beforeStalled": 135,
+    "afterStalled": 0,
+    "realAShortLanes": 4
+  },
+  "audio": {
+    "ak47Draw": "Weapon_AK47.Draw",
+    "m4a1Draw": "Weapon_M4A1.Draw",
+    "awpDraw": "Weapon_AWP.Draw",
+    "glockDraw": "Weapon_Glock.Draw",
+    "uspDraw": "Weapon_USP.Draw",
+    "eliteDraw": "Weapon_ELITE.Draw",
+    "p250Draw": "Weapon_P250.Draw",
+    "fivesevenDraw": "Weapon_FiveSeven.Draw",
+    "deagleDraw": "Weapon_DEagle.Draw",
+    "novaDraw": "Weapon_Nova.Draw",
+    "mag7Draw": "Weapon_Mag7.Draw",
+    "mp9Draw": "Weapon_MP9.Draw",
+    "mp7Draw": "Weapon_MP7.Draw",
+    "bizonDraw": "Weapon_bizon.Draw",
+    "scar20Draw": "Weapon_SCAR20.Draw",
+    "m4a4Draw": "Weapon_M4A1.Draw",
+    "ssg08Draw": "Weapon_SSG08.Draw",
+    "tec9Draw": "Weapon_tec9.Draw",
+    "xm1014Draw": "Weapon_XM1014.Draw",
+    "sawedoffDraw": "Weapon_Sawedoff.Draw",
+    "mac10Draw": "Weapon_MAC10.Draw",
+    "galilarDraw": "Weapon_GalilAR.Draw",
+    "sg553Draw": "Weapon_SG556.Draw",
+    "molotovDraw": "Molotov.Draw",
+    "incgrenadeDraw": "IncGrenade.Draw",
+    "decoyDraw": "Decoy.Draw",
+    "molotovThrow": "Molotov.Throw",
+    "incgrenadeThrow": "IncGrenade.Throw",
+    "decoyThrow": "Decoy.Throw",
+    "fireStart": "Molotov.Smash",
+    "fireLoop": "Molotov.Loop",
+    "fireExtinguish": "Molotov.Extinguish",
+    "knifeDraw": "Weapon_Knife.Draw.Small",
+    "knifeHeavySwing": "Weapon_Knife.Swish.Heavy",
+    "knifeHeavyHit": "Weapon_Knife.Hit.Heavy",
+    "hegrenadeDraw": "HEGrenade.Draw",
+    "flashbangDraw": "Flashbang.Draw",
+    "smokegrenadeDraw": "SmokeGrenade.Draw"
+  },
+  "assetVersion": "56537567932c2c63",
+  "screenshots": [
+    {
+      "file": "feedback-kill-cards.png",
+      "source": "output/playwright/feedback-kill-cards.png",
+      "sha256": "42d7b31cf1c9eccd0a1c67ff79f6936dc4c32a7907a3063c4a1e724d45f7a9b7",
+      "bytes": 1895494,
+      "width": 1245,
+      "height": 1239,
+      "modified": false,
+      "capturedOn": "2026-09-11",
+      "url": "http://127.0.0.1:3003/",
+      "note": "Controlled local game QA"
+    },
+    {
+      "file": "feedback-stairs.png",
+      "source": "output/playwright/feedback-stairs.png",
+      "sha256": "002be0c4395f21f46436ab340364ea8e5b458b41312ad4f4aba848fff30f7735",
+      "bytes": 1475476,
+      "width": 1245,
+      "height": 1239,
+      "modified": false,
+      "capturedOn": "2026-09-11",
+      "url": "http://127.0.0.1:3003/",
+      "note": "Controlled local game QA"
+    },
+    {
+      "file": "utility-molotov.png",
+      "source": "output/playwright/utility-molotov.png",
+      "sha256": "6ffc6d4e565baede5ef0b7afaa617c6bbebec2cc5d6e5ddad1a49ef6d3d1f696",
+      "bytes": 1918101,
+      "width": 1245,
+      "height": 1239,
+      "modified": false,
+      "capturedOn": "2026-09-11",
+      "url": "http://127.0.0.1:3003/",
+      "note": "Controlled local game QA"
+    },
+    {
+      "file": "utility-fire-final.png",
+      "source": "output/playwright/utility-fire-final.png",
+      "sha256": "eca34d30f4926589ca87d86354d844d8f93ae41013d2e04708b7465ecdea2955",
+      "bytes": 1884471,
+      "width": 1245,
+      "height": 1239,
+      "modified": false,
+      "capturedOn": "2026-09-11",
+      "url": "http://127.0.0.1:3003/",
+      "note": "Controlled local game QA"
+    },
+    {
+      "file": "utility-plant.png",
+      "source": "output/playwright/utility-plant.png",
+      "sha256": "43ff3b19647cd24f95c38c147d1cdc3d04f9a082562f5fa229cd5a7ca4c5c7cf",
+      "bytes": 2217790,
+      "width": 1245,
+      "height": 1239,
+      "modified": false,
+      "capturedOn": "2026-09-11",
+      "url": "http://127.0.0.1:3003/",
+      "note": "Controlled local game QA"
+    },
+    {
+      "file": "utility-defuse.png",
+      "source": "output/playwright/utility-defuse.png",
+      "sha256": "8ad85d169c95bad40a90e7b8591d18a8fe23290007204e7c333eccea509e8823",
+      "bytes": 2274943,
+      "width": 1245,
+      "height": 1239,
+      "modified": false,
+      "capturedOn": "2026-09-11",
+      "url": "http://127.0.0.1:3003/",
+      "note": "Controlled local game QA"
+    },
+    {
+      "file": "utility-shop-ct.png",
+      "source": "output/playwright/utility-shop-ct.png",
+      "sha256": "c3e348eb712ba0051d724f3c71aee29f07e9d803e6e8fdc7f0df87b0591996a6",
+      "bytes": 1151253,
+      "width": 1245,
+      "height": 1239,
+      "modified": false,
+      "capturedOn": "2026-09-11",
+      "url": "http://127.0.0.1:3003/",
+      "note": "Controlled local game QA"
+    }
+  ],
+  "notes": [
+    "Local QA creates controlled kills and positions through a loopback-only control interface that is excluded from all release packages.",
+    "Final flame material visually reviewed after utility browser run."
+  ],
+  "deployment": {
+    "release": "20260911T034210Z",
+    "previousRelease": "20260909T104043Z",
+    "archiveSha256": "63e05e409ff1ea5e1b1ba4d1aca125fd504ec2296bb8b6b0b28086cc77441201",
+    "backup": "/opt/dust2-web/backups/activate-20260911T034210Z",
+    "siteConfigurationUnchanged": true,
+    "humansBeforeActivation": 0
+  },
+  "publicGameplay": {
+    "startedAt": "2026-09-11T03:52:07.882Z",
+    "base": "https://cs2.duskrain.cn/",
+    "release": "20260911T034210Z",
+    "mode": "public",
+    "checks": [
+      {
+        "name": "Two ordinary WebSocket players create an isolated DM room with zero bots"
+      },
+      {
+        "name": "Owner changes bots 0→2→0; non-owner request is rejected and snapshots agree"
+      },
+      {
+        "name": "Held full throw preserves ammo, then release consumes exactly one",
+        "eventId": "GQ067C6A33:9",
+        "strength": 1
+      },
+      {
+        "name": "Held drop throw preserves ammo, then release consumes exactly one",
+        "eventId": "GQ067C6A33:14",
+        "strength": 0
+      },
+      {
+        "name": "Held lob throw preserves ammo, then release consumes exactly one",
+        "eventId": "GQ067C6A33:18",
+        "strength": 0.5
+      },
+      {
+        "name": "Menu/blur-style cancellation releases a held grenade without throwing or consuming it"
+      },
+      {
+        "name": "Scoped shot retains click aim and zoom when unzoom/turn/switch arrive immediately afterwards",
+        "shotId": 1,
+        "zoomLevel": 2,
+        "accuracy": 0.0022,
+        "aim": {
+          "yaw": 0.3000000000000007,
+          "pitch": 1.45
+        }
+      },
+      {
+        "name": "Dropped AWP preserves exact skin, magazine and reserve in observer snapshot",
+        "weapon": "awp",
+        "skin": "awp-dragon-lore",
+        "ammo": 4,
+        "reserve": 10
+      },
+      {
+        "name": "Both sockets close cleanly; first departure is observed before final disconnect"
+      }
+    ],
+    "peers": [
+      {
+        "id": "p_50ab384546d5",
+        "team": "CT",
+        "close": {
+          "code": 1000,
+          "reason": "Gameplay verification complete"
+        }
+      },
+      {
+        "id": "p_78059dd67da8",
+        "team": "T",
+        "close": {
+          "code": 1000,
+          "reason": "Gameplay verification complete"
+        }
+      }
+    ],
+    "healthBefore": {
+      "ok": true,
+      "service": "dust2-web",
+      "release": "20260911T034210Z",
+      "protocol": 1,
+      "tickRate": 30,
+      "uptime": 24,
+      "rooms": 0,
+      "humans": 0,
+      "players": 0,
+      "memory": {
+        "rssMiB": 110,
+        "heapMiB": 15
+      },
+      "performance": {
+        "windowSamples": 731,
+        "tickBudgetMs": 33.33,
+        "tickP50Ms": 0.01,
+        "tickP95Ms": 0.04,
+        "tickMaxMs": 0.14,
+        "maxSchedulingDelayMs": 4.28,
+        "lateTicks": 0,
+        "totalTicks": 731
+      }
+    },
+    "room": "GQ067C6A33",
+    "ok": true,
+    "finishedAt": "2026-09-11T03:52:14.145Z"
+  },
+  "publicRoom": {
+    "ok": true,
+    "release": "20260911T034210Z",
+    "room": "RQ77B7FB3B",
+    "checks": [
+      "Five seats on each side; exact bot seat broadcasts",
+      "Non-host cannot remove bot",
+      "Bot removed, owner joins the vacated seat",
+      "Full room remains exactly five versus five",
+      "Host ownership transfers on departure"
+    ],
+    "at": "2026-09-11T03:53:16.528Z"
+  },
+  "publicUtility": {
+    "ok": true,
+    "release": "20260911T034210Z",
+    "checks": [
+      "Both peers receive authoritative kill, objective and utility fields",
+      "CT kit purchase is replicated",
+      "T cannot buy a kit",
+      "molotov buy, right hold and release replicated to other peer",
+      "incgrenade buy, right hold and release replicated to other peer",
+      "decoy buy, right hold and release replicated to other peer",
+      "Right-click heavy knife broadcast is authoritative"
+    ],
+    "room": "UQMTWFJ3Y6",
+    "at": "2026-09-11T04:01:47.003Z",
+    "healthBefore": {
+      "ok": true,
+      "service": "dust2-web",
+      "release": "20260911T034210Z",
+      "protocol": 1,
+      "tickRate": 30,
+      "uptime": 598,
+      "rooms": 1,
+      "humans": 1,
+      "players": 1,
+      "memory": {
+        "rssMiB": 156,
+        "heapMiB": 25
+      },
+      "performance": {
+        "windowSamples": 1800,
+        "tickBudgetMs": 33.33,
+        "tickP50Ms": 0.74,
+        "tickP95Ms": 4.63,
+        "tickMaxMs": 25.1,
+        "maxSchedulingDelayMs": 109.94,
+        "lateTicks": 8,
+        "totalTicks": 17878
+      }
+    }
+  },
+  "publicAssets": {
+    "release": "20260911T034210Z",
+    "ok": true,
+    "hashes": [
+      {
+        "path": "assets/index-B4PviWEW.js",
+        "bytes": 1095104,
+        "sha256": "572fa85dfd722ff134239f9db2af22ae75abb4983065fbe6fb67344c0a473e43"
+      },
+      {
+        "path": "assets/index-DgztE_xy.css",
+        "bytes": 78951,
+        "sha256": "ea81a64f25742a3166fa9d79f9246a847f4e7fa8152854d6720945772739f05c"
+      },
+      {
+        "path": "assets/asset-manifest.json",
+        "bytes": 150249,
+        "sha256": "eb1573b8532a0094a73a2398eea6b2d7e0f8804206fa076cb125053f4b01ff49"
+      },
+      {
+        "path": "assets/weapons/cs2-utility/molotov.glb",
+        "bytes": 6518968,
+        "sha256": "6b1d756daa02378c98d1e8ec995d0803d91526627497be0288a4bc536b2b360f"
+      },
+      {
+        "path": "assets/weapons/cs2-utility/incgrenade.glb",
+        "bytes": 3290116,
+        "sha256": "a599c9bc30fe017a2f12ef3e42873d9bc6e7ff58a5930d7b2ae85f2ef4b03879"
+      },
+      {
+        "path": "assets/weapons/cs2-utility/decoy.glb",
+        "bytes": 3724440,
+        "sha256": "304c08838273c3eeef28bea55bd931b2998fc120997f7dd0a057b7d27fafe1aa"
+      },
+      {
+        "path": "assets/weapons/cs2-utility/defusekit.glb",
+        "bytes": 800884,
+        "sha256": "ebf561d25e72f2e7416aeeef9313d995d1cd09a360ecedd024deca6148cdc14b"
+      },
+      {
+        "path": "assets/ui-cs2/molotov.svg",
+        "bytes": 3012,
+        "sha256": "141797d4f65368ff48f971f52859ddf905946dbefb8f413109def54c8467d6da"
+      },
+      {
+        "path": "assets/ui-cs2/incgrenade.svg",
+        "bytes": 13523,
+        "sha256": "81b74b9af559ca2cc0e1b936ace1307fb152be0366467393da3c18baa937075d"
+      },
+      {
+        "path": "assets/ui-cs2/decoy.svg",
+        "bytes": 1987,
+        "sha256": "57aa96423dd5155a22608e99423082df557984974f66e19c4a04e5ab9af69e8b"
+      },
+      {
+        "path": "assets/audio/cs2/manifest.json",
+        "bytes": 136871,
+        "sha256": "a4d35f319ffabab90880aa55a3534e41dd0921aa4e3e5cc1d10750c609f1114f"
+      }
+    ],
+    "at": "2026-09-11T03:53:33.237Z"
+  },
+  "portable": {
+    "archive": "H:\\playfround\\dust2-web\\artifacts\\portable\\DustII-Windows-x64-20260911-034243.zip",
+    "sha256": "3a33a6de940815ab1746fbacfd1716659ff04762d9858a30f638b6562b68d997",
+    "zipCRC": true,
+    "zipEntries": 2402,
+    "verifiedFiles": 2401,
+    "sourceCommit": "848ac763a47bd5de074c1da821ae14858d421f5f",
+    "sourceDirty": false,
+    "extractedRoot": "H:\\playfround\\dust2-web\\artifacts\\portable\\验证目录 新包 20260911\\DustII-Windows-x64-20260911-034243",
+    "browser": {
+      "mode": "offline",
+      "players": 4,
+      "bots": 3,
+      "viewModel": {
+        "id": "molotov",
+        "skinId": "molotov",
+        "waiting": false,
+        "visible": true,
+        "action": "draw"
+      },
+      "settings": {
+        "sensitivity": 1,
+        "zoomSensitivity": 1,
+        "crosshair": {
+          "style": 4,
+          "size": 1,
+          "thickness": 1.5,
+          "gap": -4,
+          "color": 5,
+          "red": 0,
+          "green": 255,
+          "blue": 165,
+          "alpha": 255,
+          "outlineThickness": 0,
+          "fixedCrosshairGap": 0,
+          "splitDistance": 3,
+          "innerSplitAlpha": 0,
+          "outerSplitAlpha": 1,
+          "splitSizeRatio": 1,
+          "useAlpha": true,
+          "dot": false,
+          "outline": false,
+          "tStyle": false,
+          "followRecoil": false,
+          "gapUseWeaponValue": false
+        },
+        "quality": "low",
+        "brightness": 100
+      },
+      "nonLocalRequests": [],
+      "errors": [],
+      "requestCount": 923
+    },
+    "onlineBrowser": {
+      "room": "DB44FF",
+      "team": "T",
+      "utility": "molotov",
+      "counts": {
+        "hegrenade": 0,
+        "flashbang": 0,
+        "smokegrenade": 0,
+        "molotov": 0,
+        "incgrenade": 0,
+        "decoy": 0
+      },
+      "roundKills": 0,
+      "resourcesLocal": true,
+      "connection": {
+        "mode": "online",
+        "socketURL": "wss://cs2.duskrain.cn/ws"
+      },
+      "errors": [],
+      "failures": []
+    }
+  }
+}
