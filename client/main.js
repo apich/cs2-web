@@ -122,7 +122,7 @@ const shop=new WeaponShop($('buy-menu'),{buy:async weapon=>{
   if(!connected||socket!==connection){shop.result({ok:false,message:'连接已断开，请重新加入。'});return;}
   send({type:'buy',weapon});
 },refund:weapon=>send({type:'refund',weapon}),close:()=>toggleBuy()});
-const settingsUI=mountSettings({controls,crosshair,getSettings:()=>({sensitivity,zoomSensitivity,crosshair:crosshairSettings,quality,brightness,...video}),onSettings:values=>{
+const settingsUI=mountSettings({controls,crosshair,onEscape:resumeGame,getSettings:()=>({sensitivity,zoomSensitivity,crosshair:crosshairSettings,quality,brightness,...video}),onSettings:values=>{
   if(values.aspect!==undefined||values.display!==undefined){video=normalizeVideo({...video,...values});resizeViewport();}
   if(values.sensitivity!==undefined)sensitivity=values.sensitivity;
   if(values.zoomSensitivity!==undefined)zoomSensitivity=values.zoomSensitivity;
@@ -140,13 +140,13 @@ async function equipSkin(skin){
   if(!connected)throw new Error('连接已断开，请重试。');
   return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pendingSkinEquip=null;reject(new Error('服务器确认超时，请重试。'));},5000);pendingSkinEquip={skin:skin.id,resolve:()=>{clearTimeout(timer);pendingSkinEquip=null;resolve();},reject:message=>{clearTimeout(timer);pendingSkinEquip=null;reject(new Error(message));}};lastSkinEquipAt=performance.now();send({type:'equipSkin',weapon:skin.weapon,skin:skin.id});});
 }
-const skins=new SkinMenu({onEquip:equipSkin});
+const skins=new SkinMenu({onEquip:equipSkin,onEscape:resumeGame});
 let pendingAgentEquip=null;
-const agentsUI=new AgentMenu({onEquip:async agent=>{
+const agentsUI=new AgentMenu({onEscape:resumeGame,onEquip:async agent=>{
  if(!connected||agent.team!==self?.team)return;
  return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pendingAgentEquip=null;reject(new Error('服务器确认超时'));},5000);pendingAgentEquip={id:agent.id,resolve:()=>{clearTimeout(timer);pendingAgentEquip=null;resolve();},reject:message=>{clearTimeout(timer);pendingAgentEquip=null;reject(new Error(message));}};send({type:'equipAgent',agent:agent.id});});
 }});
-const roomMenu=new RoomMenu({send,invite,onClose:resume=>{clearGameInput();if(resume)lockPointer();else $('pause-menu').hidden=false;}});
+const roomMenu=new RoomMenu({send,invite,onClose:resume=>{clearGameInput();if(resume)resumeGame();else $('pause-menu').hidden=false;}});
 const offlineMenu=mountOfflineMenu();
 touchControls=new TouchControls({controls,storage:preferences,getFov:zoomFov,onLook:d=>{if(!gameSurfaceActive()||!self?.alive)return;lookYaw+=d.yaw;lookPitch=THREE.MathUtils.clamp(lookPitch+d.pitch,-1.48,1.48);},onCancel:()=>{clearGameInput();mouseFire=false;wasFire=false;pendingFirePress=false;pendingAltFirePress=false;if(connected)sendInput({...currentInput(),cancelGrenade:true});},onMode:enabled=>{touchPlaying=false;clearGameInput();if(connected)$('pause-menu').hidden=false;if(enabled)document.exitPointerLock?.();resizeViewport();},onRoom:()=>{roomMenu.update(snapshot,connectionId);roomMenu.open();},onFullscreen:()=>mobileShell?.enter(true)});
 mountTouchSettings(settingsUI,touchControls);
@@ -226,7 +226,12 @@ function controlAction(action,{pressed,event,source}){
   if(!pressed)return;
   if(action==='drop'){if(equipmentControlsEnabled())send({type:'dropWeapon'});return;}
   if(action==='buy'){toggleBuy();return;}
-  if(action==='menu'){$('buy-menu').hidden=true;$('scoreboard').hidden=true;document.exitPointerLock?.();$('pause-menu').hidden=false;clearGameInput();return;}
+  if(action==='menu'){
+    const anySub=!$('settings-menu')?.hidden||!$('skin-menu')?.hidden||!$('agent-menu')?.hidden||!$('room-menu')?.hidden;
+    if(anySub||!$('pause-menu')?.hidden||!$('buy-menu')?.hidden){resumeGame();}
+    else{openPauseMenu();}
+    return;
+  }
   if(action==='altFire'&&getWeapon(self?.weapon).zoomFovs?.length>1&&controlsEnabled()&&self.reloadRemaining<=0&&fireTimer<=0){zoomLevel=(zoomLevel+1)%getWeapon(self.weapon).zoomFovs.length;scoped=zoomLevel>0;resumeZoom=0;sendInput(currentInput());return;}
   if(action==='primary')selectSlot(1);
   if(action==='secondary')selectSlot(2);
@@ -448,9 +453,68 @@ function localShoot(input,dt){
   wasFire=input.fire;
 }
 
-async function lockPointer(){if(!connected||!self||contextLost||snapshot?.match?.status==='ended')return;canvas.focus({preventScroll:true});$('pause-menu').hidden=true;$('buy-menu').hidden=true;clearGameInput();if(touchControls?.enabled){mobileShell?.enter();touchPlaying=true;await audio.start();syncTouchSurface();return;}try{await audio.start();await canvas.requestPointerLock({unadjustedMovement:true});}catch{try{await canvas.requestPointerLock();}catch{$('pause-menu').hidden=false;hud.toast('请点击继续游戏以启用鼠标控制。');}}}
-function showMenu(){matchAudio.stop();bombView.clear();roomMenu.element.hidden=true;displayedHostBots=null;audio.stopAll();footstepAudio.reset();effects.clear();utilityEffects.clear();droppedWeapons.clear();hud.reset();matchView.reset();matchPresentation.reset();spectating=null;spectatorLook=null;pendingShots=[];mouseFire=false;wasFire=false;clearGameInput();resetScope();document.exitPointerLock?.();document.body.classList.remove('playing');$('menu').hidden=false;$('hud').hidden=true;$('pause-menu').hidden=true;$('buy-menu').hidden=true;$('scoreboard').hidden=true;for(const a of actors.values())a.dispose(scene);actors.clear();self=null;snapshot=null;}
-function toggleBuy(){if(!connected)return;if(!self?.alive&&$('buy-menu').hidden){hud.toast('阵亡时无法购买，重生或下一回合后可打开商店。');return;}if($('buy-menu').hidden){$('buy-menu').hidden=false;$('pause-menu').hidden=true;mouseFire=false;resetScope();clearGameInput();shop.update({player:{...self,skins:skins.loadout},mode,round:snapshot?.round,time:snapshot?.time});document.exitPointerLock();$('close-buy').focus();}else{$('buy-menu').hidden=true;lockPointer();}}
+// —— 桌面端沉浸模式状态机：全屏 + 键盘锁 + 指针锁 ——
+const KEYBOARD_LOCK_SUPPORTED=!!(typeof navigator!=='undefined'&&navigator.keyboard?.lock);
+// 注意：ESC 是 Pointer Lock 规范的“默认解锁手势”，与键盘锁无关；键盘锁只能阻止 ESC 退出全屏。
+// Chrome 在 ESC 默认解锁后对重新锁定有约 1.25s 安全冷却，即使带瞬态激活也会失败。
+// 程序主动 document.exitPointerLock() 释放则无此冷却。
+let gameInputState='menu';   // 'menu' | 'playing' | 'paused'
+let keyboardLocked=false;
+
+function isGameResumable(){return connected&&self&&!contextLost&&snapshot?.match?.status!=='ended';}
+async function enterImmersiveMode(){
+  if(!KEYBOARD_LOCK_SUPPORTED)return;
+  try{
+    if(!document.fullscreenElement){await document.documentElement.requestFullscreen({navigationUI:'hide'});}
+  }catch{/* 全屏被拒绝或不可用：忽略，退化为仅指针锁 */}
+  if(document.fullscreenElement){
+    try{await navigator.keyboard.lock(['Escape']);keyboardLocked=true;}
+    catch{keyboardLocked=false;}
+  }
+}
+function exitImmersiveMode(){
+  keyboardLocked=false;
+  if(KEYBOARD_LOCK_SUPPORTED){try{navigator.keyboard.unlock();}catch{}}
+}
+// 单次、非轮询的指针锁请求。ESC 默认解锁后的冷却期会让浏览器拒绝它。
+async function requestLock(){
+  if(!isGameResumable())return false;
+  canvas.focus({preventScroll:true});
+  clearGameInput();
+  if(touchControls?.enabled){mobileShell?.enter();touchPlaying=true;try{await audio.start();}catch{}syncTouchSurface();return true;}
+  let locked=false;
+  try{await canvas.requestPointerLock({unadjustedMovement:true});locked=true;}
+  catch{try{await canvas.requestPointerLock();locked=true;}catch{}}
+  if(locked){await paint();locked=document.pointerLockElement===canvas;}
+  if(locked){gameInputState='playing';try{await audio.start();}catch{}}
+  return locked;
+}
+// 打开暂停菜单：主动释放指针锁（程序方式，不触发 ESC 冷却），保留全屏与键盘锁。
+function openPauseMenu(){
+  if(!connected||snapshot?.match?.status==='ended')return;
+  $('buy-menu').hidden=true;
+  $('scoreboard').hidden=true;
+  document.exitPointerLock?.();
+  $('pause-menu').hidden=false;
+  clearGameInput();
+  gameInputState='paused';
+}
+// 关闭暂停菜单并回到游戏：先锁指针（消耗瞬态激活），再补全屏+键盘锁。
+async function closePauseMenu(){
+  settingsUI.close();
+  skins.close();
+  agentsUI.close();
+  roomMenu.element.hidden=true;
+  $('buy-menu').hidden=true;
+  $('pause-menu').hidden=true;
+  $('scoreboard').hidden=true;
+  const ok=await requestLock();   // 先锁指针（消耗瞬态激活）
+  await enterImmersiveMode();     // 再补全屏+键盘锁（暂停期间不退全屏）
+  if(!ok){gameInputState='paused';if($('buy-menu').hidden)$('pause-menu').hidden=false;}
+}
+function resumeGame(){closePauseMenu();}
+function showMenu(){matchAudio.stop();bombView.clear();roomMenu.element.hidden=true;displayedHostBots=null;audio.stopAll();footstepAudio.reset();effects.clear();utilityEffects.clear();droppedWeapons.clear();hud.reset();matchView.reset();matchPresentation.reset();spectating=null;spectatorLook=null;pendingShots=[];mouseFire=false;wasFire=false;clearGameInput();resetScope();gameInputState='menu';exitImmersiveMode();document.exitPointerLock?.();document.body.classList.remove('playing');$('menu').hidden=false;$('hud').hidden=true;$('pause-menu').hidden=true;$('buy-menu').hidden=true;$('scoreboard').hidden=true;for(const a of actors.values())a.dispose(scene);actors.clear();self=null;snapshot=null;}
+function toggleBuy(){if(!connected)return;if(!self?.alive&&$('buy-menu').hidden){hud.toast('阵亡时无法购买，重生或下一回合后可打开商店。');return;}if($('buy-menu').hidden){$('buy-menu').hidden=false;$('pause-menu').hidden=true;mouseFire=false;resetScope();clearGameInput();shop.update({player:{...self,skins:skins.loadout},mode,round:snapshot?.round,time:snapshot?.time});gameInputState='paused';document.exitPointerLock();$('close-buy').focus();}else{$('buy-menu').hidden=true;resumeGame();}}
 
 async function invite(){if(!room)return;if(connection.offline){hud.toast('当前是本机练习；与朋友对战请使用“在线联机”启动入口');return;}let url=new URL(location.href);url.searchParams.set('room',room);if(inviteBase){url=new URL(inviteBase);url.searchParams.set('room',room);}try{await navigator.clipboard.writeText(url.href);hud.toast('邀请链接已复制，发送给朋友即可加入');}catch{hud.toast(`房间 ${room} · ${url.href}`);}}
 function setQuality(value){quality=value==='high'?'high':'low';preferences.setItem('dust2.quality.v2',quality);$('quality').value=quality;applyQuality();}
@@ -483,20 +547,48 @@ $('start-button').addEventListener('click',()=>start(false));$('join-button').ad
 for(const parent of [$('menu-settings').parentElement,$('game-settings').parentElement]){const button=document.createElement('button');button.type='button';button.textContent='探员仓库';button.className='agents-button';button.onclick=()=>agentsUI.open(self?.team||$('team').value);parent.append(button);}
 $('menu-skins').onclick=()=>skins.open();$('game-skins').onclick=()=>skins.open();$('menu-offline').onclick=()=>offlineMenu.open();
 $('game-settings').addEventListener('click',()=>settingsUI.open());$('menu-settings').addEventListener('click',()=>settingsUI.open());
-$('resume-button').addEventListener('click',lockPointer);
+$('resume-button').addEventListener('click',()=>resumeGame());
 $('invite-button').addEventListener('click',invite);$('pause-invite').addEventListener('click',invite);
 $('leave-button').addEventListener('click',()=>{connected=false;socket?.close();socket=null;showMenu();const q=new URL(location.href);q.searchParams.delete('room');history.replaceState(null,'',q);$('menu-status').textContent='已退出房间，可以开始新的对局。';});
 $('credits-button').addEventListener('click',()=>$('credits').hidden=false);$('close-credits').addEventListener('click',()=>$('credits').hidden=true);
 $('sensitivity').addEventListener('change',e=>{const n=Number(e.target.value);if(!Number.isFinite(n)||n<.05||n>20){e.target.value=sensitivity;return;}sensitivity=n;$('sens-value').textContent=sensitivity.toFixed(2);preferences.setItem('dust2.cs-settings.v1',JSON.stringify({sensitivity,zoomSensitivity,crosshair:crosshairSettings,quality,brightness,...video}));document.getElementById('cs-sensitivity').value=sensitivity;});
 $('volume').addEventListener('input',e=>{volume=Number(e.target.value);audio.setVolume(volume);$('vol-value').textContent=`${Math.round(volume*100)}%`;preferences.setItem('dust2.volume',volume);});
 $('quality').addEventListener('change',e=>setQuality(e.target.value));
-document.addEventListener('pointerlockchange',()=>{document.body.classList.toggle('mouse-captured',document.pointerLockElement===canvas);if(touchControls?.enabled){syncTouchSurface();return;}if(document.pointerLockElement!==canvas){clearGameInput();mouseFire=false;resetScope();if(connected&&$('buy-menu').hidden&&snapshot?.match?.status!=='ended')$('pause-menu').hidden=false;}else $('pause-menu').hidden=true;});
+document.addEventListener('pointerlockchange',()=>{
+  const locked=document.pointerLockElement===canvas;
+  document.body.classList.toggle('mouse-captured',locked);
+  if(touchControls?.enabled){syncTouchSurface();return;}
+  if(locked){$('pause-menu').hidden=true;$('buy-menu').hidden=true;gameInputState='playing';return;}
+  clearGameInput();mouseFire=false;resetScope();
+  if(!connected||snapshot?.match?.status==='ended')return;
+  if(gameInputState==='paused')return;
+  gameInputState='paused';
+  if($('buy-menu').hidden)$('pause-menu').hidden=false;
+});
+document.addEventListener('pointerlockerror',()=>{
+  if(gameInputState==='playing'){gameInputState='paused';if($('buy-menu').hidden)$('pause-menu').hidden=false;}
+});
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement){
+    keyboardLocked=false;
+    if(KEYBOARD_LOCK_SUPPORTED){try{navigator.keyboard.unlock();}catch{}}
+  }else if(KEYBOARD_LOCK_SUPPORTED&&gameInputState!=='menu'){
+    navigator.keyboard.lock(['Escape']).then(()=>keyboardLocked=true).catch(()=>keyboardLocked=false);
+  }
+});
+document.addEventListener('fullscreenerror',()=>{/* 全屏被拒：保持指针锁降级模式即可 */});
+canvas.addEventListener('pointerdown',()=>{
+  if(document.pointerLockElement===canvas||touchControls?.enabled)return;
+  if(!isGameResumable())return;
+  if(['pause-menu','buy-menu','room-menu','settings-menu','skin-menu','agent-menu','offline-menu'].some(id=>$(id)?.hidden===false))return;
+  resumeGame();
+});
 const pointerMenus=[roomMenu.element,agentsUI.element,$('menu'),$('pause-menu'),$('buy-menu'),settingsUI.element,skins.element,offlineMenu.element];
 const pointerGuard=new MutationObserver(()=>{if(pointerMenus.some(menu=>!menu.hidden)){if(document.pointerLockElement===canvas)document.exitPointerLock();if(touchPlaying){touchPlaying=false;clearGameInput();}}syncTouchSurface();});
 pointerMenus.forEach(menu=>pointerGuard.observe(menu,{attributes:true,attributeFilter:['hidden']}));
 document.addEventListener('mousemove',e=>{if(document.pointerLockElement!==canvas||!self?.alive)return;const fov=zoomFov();lookYaw-=e.movementX*mouseRadiansPerCount(sensitivity,'yaw',fov,zoomSensitivity);lookPitch=THREE.MathUtils.clamp(lookPitch-e.movementY*mouseRadiansPerCount(sensitivity,'pitch',fov,zoomSensitivity),-1.48,1.48);});
 document.addEventListener('contextmenu',e=>{if(document.pointerLockElement===canvas)e.preventDefault();});
-window.addEventListener('blur',()=>{touchPlaying=false;clearGameInput();mouseFire=false;resetScope();document.exitPointerLock?.();document.body.classList.remove('mouse-captured');if(connected&&snapshot?.match?.status!=='ended')$('pause-menu').hidden=false;syncTouchSurface();});
+window.addEventListener('blur',()=>{touchPlaying=false;clearGameInput();mouseFire=false;resetScope();document.exitPointerLock?.();document.body.classList.remove('mouse-captured');if(gameInputState==='playing'){gameInputState='paused';if(connected&&snapshot?.match?.status!=='ended'&&$('buy-menu').hidden)$('pause-menu').hidden=false;}syncTouchSurface();});
 function resizeViewport(){
  const width=Math.max(1,Math.round(globalThis.visualViewport?.width||innerWidth)),height=Math.max(1,Math.round(globalThis.visualViewport?.height||innerHeight));
  document.body.style.setProperty('--app-height',height+'px');
