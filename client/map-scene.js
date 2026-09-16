@@ -13,6 +13,108 @@ const assetUrl=path=>new URL(path.replace(/^\//,''),document.baseURI).href;
  * separately sourced reduced collision mesh for deterministic multiplayer;
  * render/collision alignment is checked by map-render-validate.mjs.
  */
+// Classify a Source 2 VMAT by its actual render metadata (shader, flags and
+// the alphaMode/alphaTest that GLTFLoader already resolved), not by broad name
+// regexes. A crate's "_decals" layer is still an opaque surface. Returns three
+// orthogonal decisions so render state, depth bias and geometry correction are
+// never coupled:
+//   renderType         -> transparent / depthWrite / depthTest / alphaTest
+//   depthBias          -> polygonOffset only
+//   geometryCorrection -> whether/how vertices are shifted (none|overlay|window-inset)
+function classifySource2Material(material, object) {
+  const vmat = material.userData?.vmat || {};
+  const flags = vmat.IntParams || {};
+  const shader = vmat.ShaderName || '';
+
+  // Depth-feathered proxy volumes have no glTF opacity equivalent; hide them.
+  if (flags.F_DEPTH_FEATHER) return { renderType: 'hidden', depthBias: false, geometryCorrection: 'none' };
+
+  const isOverlay =
+    !!(flags.F_OVERLAY || shader === 'csgo_static_overlay.vfx') ||
+    /s_mesh_overlay/i.test(object.name);
+  // Narrow, deliberate special-case: Source 2 Viewer exports the kasbah window
+  // inset geometry pushed outward, needing its own vertex alignment. This name
+  // match controls geometryCorrection (and at most depthBias), never renderType.
+  const isWindowInset =
+    /dust_kasbah_window_insets/i.test(object.name) ||
+    /dust_kasbah_window_insets/i.test(material.name || '') ||
+    /dust_kasbah_window_insets/i.test(vmat.Name || '');
+
+  if (material.transparent) {
+    return {
+      renderType: isOverlay ? 'decal' : 'transparent',
+      depthBias: isOverlay,
+      geometryCorrection: isOverlay ? 'overlay' : 'none',
+    };
+  }
+  if (material.alphaTest > 0) {
+    return {
+      renderType: 'alpha-cutout',
+      depthBias: !!flags.F_DEPTH_BIAS,
+      geometryCorrection: isWindowInset ? 'window-inset' : 'none',
+    };
+  }
+  return {
+    renderType: 'opaque',
+    depthBias: isOverlay || !!flags.F_DEPTH_BIAS,
+    geometryCorrection: isWindowInset ? 'window-inset' : (isOverlay ? 'overlay' : 'none'),
+  };
+}
+
+// Apply the classified render policy. Only decal/transparent surfaces enter the
+// blended queue; opaque and alpha-cutout keep writing depth so they correctly
+// occlude one another. depthBias only toggles polygonOffset — it never implies
+// transparency.
+function configureMaterialForType(material, { renderType, depthBias }) {
+  if (renderType === 'hidden') {
+    material.visible = false;
+    material.polygonOffset = false;
+    return;
+  }
+  if (renderType === 'opaque' || renderType === 'alpha-cutout') {
+    material.transparent = false;
+    material.depthWrite = true;
+    material.depthTest = true;
+  } else { // 'decal' | 'transparent'
+    material.transparent = true;
+    material.depthWrite = false;
+    material.depthTest = true;
+  }
+  if (depthBias) {
+    material.polygonOffset = true;
+    material.polygonOffsetFactor = -1;
+    material.polygonOffsetUnits = -1;
+  } else {
+    material.polygonOffset = false;
+  }
+}
+
+// Shift vertices backward along their normals by a world-space distance. Source 2
+// Viewer pushes surface-attached geometry (overlay decals and window insets)
+// ~0.392 m outward; moving them back along the normal lays them flush without
+// touching their transparent/depthWrite state.
+function shiftAlongNormal(object, worldDistance) {
+  const pos = object.geometry?.attributes?.position;
+  const norm = object.geometry?.attributes?.normal;
+  if (!pos || !norm) return;
+  const scale = object.getWorldScale(new THREE.Vector3()).x || 1.0;
+  const localShift = worldDistance / scale;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setXYZ(
+      i,
+      pos.getX(i) - norm.getX(i) * localShift,
+      pos.getY(i) - norm.getY(i) * localShift,
+      pos.getZ(i) - norm.getZ(i) * localShift
+    );
+  }
+  pos.needsUpdate = true;
+  object.geometry.computeBoundingBox();
+  object.geometry.computeBoundingSphere();
+}
+
+function shiftOverlayOntoSurface(object) { shiftAlongNormal(object, 0.392); }
+function shiftWindowInsetOntoSurface(object) { shiftAlongNormal(object, 0.392); }
+
 export async function createMapScene(scene,{onProgress=()=>{}}={}) {
   onProgress('载入 CS2 原版 Dust II 场景…');
   const manager=new THREE.LoadingManager();
@@ -48,48 +150,23 @@ export async function createMapScene(scene,{onProgress=()=>{}}={}) {
     triangles+=(object.geometry.index?.count||object.geometry.attributes.position.count)/3;
     object.castShadow=true;object.receiveShadow=true;
     object.frustumCulled=true;
-    const isOverlayMesh = /s_mesh_overlay/i.test(object.name);
-    const isWindowInsetMesh = /dust_kasbah_window_insets/i.test(object.name) || (Array.isArray(object.material) ? object.material : [object.material]).some(m => /dust_kasbah_window_insets/i.test(m.name || m.userData?.vmat?.Name));
-    const isDepthBiasedMesh = isOverlayMesh || isWindowInsetMesh;
-    if (isDepthBiasedMesh) {
-      object.castShadow = false;
-      const pos = object.geometry?.attributes?.position;
-      const norm = object.geometry?.attributes?.normal;
-      const scale = object.scale?.x || 1.0;
-      const localShift = 0.392 / scale;
-      if (pos && norm && !object.userData.overlayShifted) {
-        object.userData.overlayShifted = true;
-        for (let i = 0; i < pos.count; i++) {
-          const nx = norm.getX(i), ny = norm.getY(i), nz = norm.getZ(i);
-          pos.setXYZ(i, pos.getX(i) - nx * localShift, pos.getY(i) - ny * localShift, pos.getZ(i) - nz * localShift);
-        }
-        pos.needsUpdate = true;
-        object.geometry.computeBoundingBox();
-        object.geometry.computeBoundingSphere();
-      }
-    }
     for(const material of Array.isArray(object.material)?object.material:[object.material]){
-      const shaderFlags=material.userData?.vmat?.IntParams||{};
-      if(shaderFlags.F_DO_NOT_CAST_SHADOWS)object.castShadow=false;
-      const sourceName=material.userData?.vmat?.Name||material.name;
-      if(isDepthBiasedMesh || shaderFlags.F_DEPTH_BIAS || shaderFlags.F_OVERLAY || /overlay|decal|graffiti|poster|striping|window_insets/i.test(sourceName)){
+      const flags=material.userData?.vmat?.IntParams||{};
+      const classification=classifySource2Material(material,object);
+      if(classification.renderType==='hidden'||classification.renderType==='decal'||classification.depthBias||flags.F_DO_NOT_CAST_SHADOWS){
         object.castShadow=false;
-        material.polygonOffset=true;
-        material.polygonOffsetFactor=-1;
-        material.polygonOffsetUnits=-1;
-        if(isOverlayMesh || /overlay|decal|graffiti|poster|striping/i.test(sourceName)){
-          material.transparent=true;
-          material.depthWrite=false;
-        }
+      }
+      if(classification.geometryCorrection&&classification.geometryCorrection!=='none'&&!object.userData.geometryCorrected){
+        object.userData.geometryCorrected=classification.geometryCorrection;
+        if(classification.geometryCorrection==='window-inset')shiftWindowInsetOntoSurface(object);
+        else shiftOverlayOntoSurface(object);
       }
       if(materials.has(material))continue;
       materials.add(material);
-      // Engine depth-feathered dust volumes have no glTF opacity equivalent.
-      // Drawing their proxy triangles as opaque walls would obstruct the view.
-      if(shaderFlags.F_DEPTH_FEATHER)material.visible=false;
+      configureMaterialForType(material,classification);
       // In Source foliage/cloth shaders vertex colors encode wind weights,
       // not albedo. Multiplying them into the texture turns green leaves red.
-      if(shaderFlags.F_VERTEX_ANIMATION||['csgo_effects.vfx','csgo_foliage.vfx'].includes(material.userData?.vmat?.ShaderName))material.vertexColors=false;
+      if(flags.F_VERTEX_ANIMATION||['csgo_effects.vfx','csgo_foliage.vfx'].includes(material.userData?.vmat?.ShaderName))material.vertexColors=false;
       for(const value of Object.values(material))if(value?.isTexture)textures.add(value);
     }
   });
