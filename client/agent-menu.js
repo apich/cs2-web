@@ -14,8 +14,8 @@ export function readAgentLoadout(){
 
 /** Loading happens only after selecting a card, before the server equip callback. */
 export class AgentMenu {
-  constructor({onEquip=async()=>{},loadAgent=loadAgentAsset}={}){
-    this.loadout=readAgentLoadout();this.onEquip=onEquip;this.loadAgent=loadAgent;
+  constructor({onEquip=async()=>{},loadAgent=loadAgentAsset,onEscape}={}){
+    this.loadout=readAgentLoadout();this.onEquip=onEquip;this.onEscape=onEscape;this.loadAgent=loadAgent;
     this.busy=false;this.destroyed=false;this.activeTeam='CT';
     const modal=document.createElement('div');modal.id='agent-menu';modal.className='overlay';modal.hidden=true;
     modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
@@ -24,7 +24,7 @@ export class AgentMenu {
     document.body.append(modal);this.element=modal;
     modal.querySelector('.agent-close').onclick=()=>this.close();
     modal.addEventListener('keydown',event=>{
-      if(event.code==='Escape'){event.preventDefault();event.stopPropagation();this.close();return;}
+      if(event.code==='Escape'){event.preventDefault();event.stopPropagation();if(this.onEscape)this.onEscape();else this.close();return;}
       if(event.code!=='Tab')return;
       const buttons=[...modal.querySelectorAll('button:not(:disabled)')];
       const first=buttons[0],last=buttons.at(-1);
