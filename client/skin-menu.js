@@ -6,13 +6,13 @@ import './skins.css';
 
 export function readSkinLoadout(){try{const saved=JSON.parse(preferences.getItem('dust2.skins.v1')||'{}');if(!preferences.getItem('dust2.skins.v2')){for(const id of ['ak47','m4a1','awp','pistol','usp','knife']){if(['ak47-wild-lotus','m4a1-blue-phosphor','awp-gungnir','glock-emerald','usp-printstream','karambit-sapphire'].includes(saved[id]))delete saved[id];}preferences.setItem('dust2.skins.v1',JSON.stringify(saved));preferences.setItem('dust2.skins.v2','1');}return normalizeSkinLoadout(saved);}catch{return {...DEFAULT_SKINS};}}
 export class SkinMenu{
-  constructor({onEquip}){
-    this.loadout=readSkinLoadout();this.weapon='ak47';this.onEquip=onEquip;this.busy=false;this.downloaded=new Set();
+  constructor({onEquip,onEscape}){
+    this.loadout=readSkinLoadout();this.weapon='ak47';this.onEquip=onEquip;this.onEscape=onEscape;this.busy=false;this.downloaded=new Set();
     const modal=document.createElement('div');modal.className='overlay';modal.id='skin-menu';modal.hidden=true;
     modal.innerHTML=`<section class="skin-card"><header><div><span class="eyebrow">PERSONAL LOADOUT</span><h2>皮肤仓库</h2></div><button id="close-skins">完成 ×</button></header><p>选择你喜欢的涂装。新增刀型需先下载，再点击装备；资源保存在本机；外观会同步给房间里的玩家。</p><div class="glove-label">默认手套：运动手套 · 树篱迷宫 · 崭新出厂</div><nav>${Object.keys(DEFAULT_SKINS).map(id=>`<button data-skin-weapon="${id}">${getWeapon(id).name}</button>`).join('')}</nav><div id="skin-grid" class="skin-grid"></div><div class="skin-status" role="status"></div></section>`;
     document.body.append(modal);this.element=modal;
     modal.querySelector('#close-skins').onclick=()=>this.close();
-    modal.addEventListener('keydown',e=>{if(e.code==='Escape'){this.close();e.preventDefault();}});
+    modal.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();if(this.onEscape)this.onEscape();else this.close();}});
     modal.querySelectorAll('[data-skin-weapon]').forEach(b=>b.onclick=()=>{this.weapon=b.dataset.skinWeapon;this.render();});
   }
   open(){this.element.hidden=false;this.refreshDownloads();this.render();this.element.querySelector('#close-skins').focus();}

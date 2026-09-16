@@ -9,7 +9,7 @@ export class RoomMenu {
     this.element.querySelector('.room-invite').onclick=invite;
     this.element.querySelector('.room-close').onclick=()=>this.close();
     this.element.querySelector('.room-play').onclick=()=>this.close(true);
-    this.element.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();e.stopPropagation();this.close();}});
+    this.element.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();e.stopPropagation();this.close(true);}});
     this.element.querySelector('.room-teams').addEventListener('click',e=>{
       const b=e.target.closest('button[data-action]');if(!b)return;
       if(this.busy)return;this.busy=true;this.element.querySelectorAll('[data-action]').forEach(b=>b.disabled=true);setTimeout(()=>{this.busy=false;this.element.querySelectorAll('[data-action]').forEach(b=>b.disabled=false);},340);
