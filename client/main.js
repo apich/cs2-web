@@ -186,7 +186,7 @@ function sendInput(input){if(input.seq<=lastSentInputSeq)return;lastSentInputSeq
 function clearGameInput(){touchControls?.clear();controls.clear();mouseFire=false;pendingFirePress=false;pendingAltFirePress=false;wasFire=false;}
 function inputCaptured(){return document.pointerLockElement===canvas||!!(touchControls?.enabled&&touchPlaying);}
 function gameSurfaceActive(){return connected&&inputCaptured()&&!contextLost&&!document.hidden&&!['menu','pause-menu','buy-menu','room-menu','settings-menu','skin-menu','agent-menu','offline-menu'].some(id=>$(id)?.hidden===false);}
-function controlsEnabled(){return gameSurfaceActive()&&self?.alive&&snapshot?.round?.phase==='live';}
+function controlsEnabled(){return gameSurfaceActive()&&self?.alive&&['live','ended'].includes(snapshot?.round?.phase);}
 function movementControlsEnabled(){return gameSurfaceActive()&&self?.alive&&['live','ended'].includes(snapshot?.round?.phase);}
 function equipmentControlsEnabled(){return gameSurfaceActive()&&self?.alive&&['live','freeze'].includes(snapshot?.round?.phase);}
 function currentInput(){
@@ -514,7 +514,7 @@ async function closePauseMenu(){
 }
 function resumeGame(){closePauseMenu();}
 function showMenu(){matchAudio.stop();bombView.clear();roomMenu.element.hidden=true;displayedHostBots=null;audio.stopAll();footstepAudio.reset();effects.clear();utilityEffects.clear();droppedWeapons.clear();hud.reset();matchView.reset();matchPresentation.reset();spectating=null;spectatorLook=null;pendingShots=[];mouseFire=false;wasFire=false;clearGameInput();resetScope();gameInputState='menu';exitImmersiveMode();document.exitPointerLock?.();document.body.classList.remove('playing');$('menu').hidden=false;$('hud').hidden=true;$('pause-menu').hidden=true;$('buy-menu').hidden=true;$('scoreboard').hidden=true;for(const a of actors.values())a.dispose(scene);actors.clear();self=null;snapshot=null;}
-function toggleBuy(){if(!connected)return;if(!self?.alive&&$('buy-menu').hidden){hud.toast('阵亡时无法购买，重生或下一回合后可打开商店。');return;}if($('buy-menu').hidden){$('buy-menu').hidden=false;$('pause-menu').hidden=true;mouseFire=false;resetScope();clearGameInput();shop.update({player:{...self,skins:skins.loadout},mode,round:snapshot?.round,time:snapshot?.time});gameInputState='paused';document.exitPointerLock();$('close-buy').focus();}else{$('buy-menu').hidden=true;resumeGame();}}
+function toggleBuy(){if(!connected)return;if(!self?.alive&&$('buy-menu').hidden){hud.toast('阵亡时无法购买，重生或下一回合后可打开商店。');return;}if($('buy-menu').hidden){if(self?.buyAllowed===false){hud.toast(self.buyReason||'当前无法购买。');return;}$('buy-menu').hidden=false;$('pause-menu').hidden=true;mouseFire=false;resetScope();clearGameInput();shop.update({player:{...self,skins:skins.loadout},mode,round:snapshot?.round,time:snapshot?.time});gameInputState='paused';document.exitPointerLock();$('close-buy').focus();}else{$('buy-menu').hidden=true;resumeGame();}}
 
 async function invite(){if(!room)return;if(connection.offline){hud.toast('当前是本机练习；与朋友对战请使用“在线联机”启动入口');return;}let url=new URL(location.href);url.searchParams.set('room',room);if(inviteBase){url=new URL(inviteBase);url.searchParams.set('room',room);}try{await navigator.clipboard.writeText(url.href);hud.toast('邀请链接已复制，发送给朋友即可加入');}catch{hud.toast(`房间 ${room} · ${url.href}`);}}
 function setQuality(value){quality=value==='high'?'high':'low';preferences.setItem('dust2.quality.v2',quality);$('quality').value=quality;applyQuality();}
