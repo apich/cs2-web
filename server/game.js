@@ -6,10 +6,10 @@ import {tacticalGoal,shareSighting,botUtility,separateTeammates} from './bot-tac
 import { randomBytes } from 'node:crypto';
 import { MAP } from '../shared/map-data.js';
 import { createPlayerState, stepPlayer, stepCorpse, raycastWorld, raycastWorldContact, resolveAllPlayerCollisions } from '../shared/physics.js';
-import { WEAPONS, PRIMARY_WEAPONS, getWeapon, normalizeWeapon, canTeamUseWeapon, defaultPrimaryForTeam, weaponSpeedScale } from '../shared/weapons.js';
+import { WEAPONS, PRIMARY_WEAPONS, getWeapon, normalizeWeapon, canTeamUseWeapon, defaultPrimaryForTeam, weaponSpeedScale, killReward } from '../shared/weapons.js';
 import { DEFAULT_SKINS, getSkin, normalizeSkinLoadout } from '../shared/skins.js';
 import { DEFAULT_AGENT_IDS, getAgent, normalizeAgentLoadout } from '../shared/agents.js';
-import { EQUIPMENT, UTILITY_IDS, MAX_GRENADES, getEquipment, canTeamBuyEquipment, equipmentPrice, grenadeCount } from '../shared/equipment.js';
+import { EQUIPMENT, UTILITY_IDS, MAX_GRENADES, UTILITY_ROUND_LIMITS, getEquipment, canTeamBuyEquipment, equipmentPrice, grenadeCount } from '../shared/equipment.js';
 import { GrenadeSimulation } from './grenades.js';
 import { MATCH_RULES, botCount, defuseDecision, grenadeMode, grenadeStrength } from '../shared/match-rules.js';
 import { BOT_AIM, BOT_SKILL, smoothBotAim } from './bot-aim.js';
@@ -362,6 +362,13 @@ export class GameRoom {
     return {buyAllowed:true,buyReason:''};
   }
 
+  /** 当前回合/当前命已购买的投掷物计数（重生或新回合自动归零）。 */
+  utilityBudget(p){
+    const b=p.utilityBudget;
+    if(b&&b.round===this.round.number&&b.life===p.lifeId)return b;
+    return p.utilityBudget={round:this.round.number,life:p.lifeId};
+  }
+
   buy(id, rawWeapon) {
     const p = this.controlledPlayer(id);
     if (!p?.alive) return { ok: false, message: '存活时才可以购买。' };
@@ -371,7 +378,10 @@ export class GameRoom {
     const equipment=getEquipment(weapon),gun=Object.hasOwn(WEAPONS,weapon)?WEAPONS[weapon]:null;
     if(!equipment&&(!gun||![1,2].includes(gun.slot)))return {ok:false,message:'无效的购买物品。'};
     if(equipment?!canTeamBuyEquipment(p.team,weapon):!canTeamUseWeapon(p.team,weapon))return {ok:false,message:'该装备不在当前阵营的购买清单中。'};
-    if(equipment?.slot===4&&((p.inventory[weapon]?.ammo||0)>=equipment.maxCount||grenadeCount(p.inventory)>=MAX_GRENADES))return {ok:false,message:'投掷物携带数量已达上限（同类闪光2枚，其余1枚，总计4枚）。'};
+    if(equipment?.slot===4){
+      if((p.inventory[weapon]?.ammo||0)>=equipment.maxCount||grenadeCount(p.inventory)>=MAX_GRENADES)return {ok:false,message:'投掷物携带数量已达上限（同类闪光2枚，其余1枚，总计4枚）。'};
+      if((this.utilityBudget(p)[weapon]||0)>=(UTILITY_ROUND_LIMITS[weapon]||1))return {ok:false,message:'本回合该投掷物已买到上限（每回合最多：烟雾 1、燃烧 1、手雷 1、闪光 2、诱饵 1）。'};
+    }
     if(weapon==='defusekit'&&p.defuseKit)return {ok:false,message:'已持有拆弹工具。'};
     if(weapon==='armor'&&p.armor>=100)return {ok:false,message:'防弹背心已完好。'};
     if(weapon==='helmet'&&p.armor>=100&&p.helmet)return {ok:false,message:'防弹背心和头盔已完好。'};
@@ -379,11 +389,14 @@ export class GameRoom {
     if (p.money < price) return { ok: false, message: '余额不足。' };
     if(gun)this.cancelReload(p);
     p.money -= price;
-    if (weapon === 'armor') p.armor = 100;
-    else if(weapon==='helmet'){p.armor=100;p.helmet=true;}
-    else if(weapon==='defusekit')p.defuseKit=true;
-    else if(equipment?.slot===4){p.inventory[weapon]||={ammo:0,reserve:0};p.inventory[weapon].ammo++;}
-    else { for (const id of Object.keys(p.inventory)) if (getWeapon(id).slot === gun.slot){const ammo=p.inventory[id],drop=this.droppedWeapons.drop(p,{weaponId:id,skinId:this.heldSkin(p,id),ammo:ammo.ammo,reserve:ammo.reserve,...(ammo.reloadReadyAt?{reloadReadyAt:ammo.reloadReadyAt}:{})});delete p.inventory[id];if(p.purchases)delete p.purchases[id];this.emit('weapon_dropped',{playerId:p.id,droppedId:drop.id,weaponId:id,skinId:drop.skinId,death:false});} this.giveWeapon(p, weapon);if(gun.slot===1)p.loadoutPrimary=weapon;p.reloadEndsAt=0;p.zoomLevel=0;this.selectSlot(p, gun.slot); }
+    if (weapon === 'armor') { p.armor = 100; (p.purchases||={}).armor={price,round:this.round.number,life:p.lifeId}; }
+    else if(weapon==='helmet'){p.armor=100;p.helmet=true;const prevArmor=(p.purchases||={}).armor;if(prevArmor&&prevArmor.round===this.round.number&&prevArmor.life===p.lifeId)prevArmor.price=Math.min(prevArmor.price+price,1000);else p.purchases.armor={price,round:this.round.number,life:p.lifeId};}
+    else if(weapon==='defusekit'){p.defuseKit=true;(p.purchases||={}).defusekit={price,round:this.round.number,life:p.lifeId};}
+    else if(equipment?.slot===4){p.inventory[weapon]||={ammo:0,reserve:0};p.inventory[weapon].ammo++;(p.purchases||={})[weapon]={price,round:this.round.number,life:p.lifeId};this.utilityBudget(p)[weapon]=(this.utilityBudget(p)[weapon]||0)+1;}
+    else { for (const id of Object.keys(p.inventory)) if (getWeapon(id).slot === gun.slot){const ammo=p.inventory[id],drop=this.droppedWeapons.drop(p,{weaponId:id,skinId:this.heldSkin(p,id),ammo:ammo.ammo,reserve:ammo.reserve,...(ammo.reloadReadyAt?{reloadReadyAt:ammo.reloadReadyAt}:{}),...(p.inventory[id].buyerId?{buyerId:p.inventory[id].buyerId}:{})});delete p.inventory[id];this.emit('weapon_dropped',{playerId:p.id,droppedId:drop.id,weaponId:id,skinId:drop.skinId,death:false});} this.giveWeapon(p, weapon);p.inventory[weapon].buyerId=p.id;if(gun.slot===1)p.loadoutPrimary=weapon;p.reloadEndsAt=0;p.zoomLevel=0;this.selectSlot(p, gun.slot); }
+
+    // 购买替换掉落的旧枪仍归原买家所有：保留其购买记录与 buyerId，捡回后仍可退款。
+    // 主动丢弃（dropWeapon）与开火清除记录，转手他人后 buyerId 不匹配也不可退。
     if(gun&&price>0)(p.purchases||={})[weapon]={price,round:this.round.number,life:p.lifeId};
     this.emit('buy', { playerId: id, weapon, money: p.money });
     return { ok: true, weapon, slot:gun?.slot??equipment?.slot??0, money: p.money };
@@ -391,12 +404,26 @@ export class GameRoom {
 
   refundable(p){
     if(!this.buyStatus(p).buyAllowed)return [];
-    return Object.entries(p.purchases||{}).filter(([id,r])=>p.inventory[id]&&r.round===this.round.number&&r.life===p.lifeId).map(([weapon,r])=>({weapon,price:r.price}));
+    const list=[];
+    for(const [id,r] of Object.entries(p.purchases||{})){
+      if(r.round!==this.round.number||r.life!==p.lifeId)continue;
+      if(id==='armor'){if(p.armor>0)list.push({weapon:'armor',price:r.price});continue;}
+      if(id==='defusekit'){if(p.defuseKit)list.push({weapon:'defusekit',price:r.price});continue;}
+      if(getEquipment(id)?.slot===4){const ammo=p.inventory[id]?.ammo||0;if(ammo>0)list.push({weapon:id,price:r.price*ammo});continue;}
+      if(p.inventory[id]&&p.inventory[id].buyerId===p.id)list.push({weapon:id,price:r.price});
+    }
+    return list;
   }
   refund(id,weapon){
     const p=this.controlledPlayer(id),receipt=p&&this.refundable(p).find(r=>r.weapon===weapon);
-    if(!receipt)return {ok:false,message:'只能退还本回合在购买区购买且尚未使用、未丢弃的枪械。'};
-    this.cancelReload(p);delete p.inventory[weapon];delete p.purchases[weapon];p.money=Math.min(16000,p.money+receipt.price);
+    if(!receipt)return {ok:false,message:'只能退还本回合在购买区购买且尚未使用、未丢弃、未扔出的装备。'};
+    this.cancelReload(p);
+    if(weapon==='armor'){p.armor=0;p.helmet=false;}
+    else if(weapon==='defusekit'){p.defuseKit=false;}
+    else if(getEquipment(weapon)?.slot===4){delete p.inventory[weapon];if(p.utilityBudget)delete p.utilityBudget[weapon];}
+    else delete p.inventory[weapon];
+    delete p.purchases[weapon];
+    p.money=Math.min(16000,p.money+receipt.price);
     if(p.weapon===weapon)this.selectSlot(p,Object.keys(p.inventory).some(id=>getWeapon(id).slot===1)?1:Object.keys(p.inventory).some(id=>getWeapon(id).slot===2)?2:3);
     this.emit('refund',{playerId:id,weapon,money:p.money});return {ok:true,weapon,money:p.money,refunded:true};
   }
@@ -502,7 +529,7 @@ export class GameRoom {
     if (victim.hasBomb) this.dropBomb(victim);
     const credited=!!killer&&killer.id!==victim.id&&killer.team!==victim.team;
     const scorer=this.players.get(killer?.controllerId)||killer;
-    if (credited) { scorer.kills++;scorer.roundKills=(scorer.roundKills||0)+1;scorer.lifeKills=(scorer.lifeKills||0)+1;scorer.killCards||=[];if(scorer.killCards.length<5)scorer.killCards.push({weapon,headshot,backstab:metadata.backstab===true});killer.money = Math.min(16000, killer.money + (weapon === 'knife' ? 750 : 300)); if (this.mode === 'deathmatch') this.scores[killer.team]++; }
+    if (credited) { scorer.kills++;scorer.roundKills=(scorer.roundKills||0)+1;scorer.lifeKills=(scorer.lifeKills||0)+1;scorer.killCards||=[];if(scorer.killCards.length<5)scorer.killCards.push({weapon,headshot,backstab:metadata.backstab===true});if(this.round.phase==='live'){killer.money = Math.min(16000, killer.money + killReward(weapon)); if (this.mode === 'defuse' && killer.team === 'CT' && victim.team === 'T') for (const p of this.players.values()) if (p.team === 'CT') p.money = Math.min(16000, p.money + 50);} if (this.mode === 'deathmatch') this.scores[killer.team]++; }
     this.emit('kill', { killerId: killer?.id || null, victimId: victim.id, killerName: scorer?.name || '环境',killerControllerId:killer?.controllerId||null, victimName: victim.name, weapon, headshot,...metadata,credited,killerRoundKills:credited?scorer.roundKills:0,killerLifeKills:credited?scorer.lifeKills:0 });
     if(this.mode==='deathmatch'&&killer&&this.scores[killer.team]>=MATCH_RULES.deathmatchWinTarget)this.endMatch(killer.teamId,'队伍率先完成 100 次击杀');
   }
@@ -604,8 +631,8 @@ export class GameRoom {
     const w=getWeapon(candidate.weaponId),old=Object.keys(p.inventory).find(id=>getWeapon(id).slot===w.slot);
     const item=this.droppedWeapons.take(candidate.id);if(!item)return false;
     if(!automatic)this.cancelReload(p);
-    if(old){const ammo=p.inventory[old],drop=this.droppedWeapons.drop(p,{weaponId:old,skinId:this.heldSkin(p,old),ammo:ammo.ammo,reserve:ammo.reserve,...(ammo.reloadReadyAt?{reloadReadyAt:ammo.reloadReadyAt}:{})});delete p.inventory[old];if(p.purchases)delete p.purchases[old];this.emit('weapon_dropped',{playerId:p.id,droppedId:drop.id,weaponId:old,skinId:drop.skinId,death:false});}
-    p.inventory[w.id]={ammo:item.ammo,reserve:item.reserve,skinId:item.skinId,...(item.reloadReadyAt?{reloadReadyAt:item.reloadReadyAt}:{})};if(!automatic){p.reloadEndsAt=0;p.zoomLevel=0;this.cancelGrenade(p,'pickup');}
+    if(old){const ammo=p.inventory[old],drop=this.droppedWeapons.drop(p,{weaponId:old,skinId:this.heldSkin(p,old),ammo:ammo.ammo,reserve:ammo.reserve,...(ammo.reloadReadyAt?{reloadReadyAt:ammo.reloadReadyAt}:{}),...(p.inventory[old].buyerId?{buyerId:p.inventory[old].buyerId}:{})});delete p.inventory[old];if(p.purchases)delete p.purchases[old];this.emit('weapon_dropped',{playerId:p.id,droppedId:drop.id,weaponId:old,skinId:drop.skinId,death:false});}
+    p.inventory[w.id]={ammo:item.ammo,reserve:item.reserve,skinId:item.skinId,...(item.reloadReadyAt?{reloadReadyAt:item.reloadReadyAt}:{}),...(item.buyerId?{buyerId:item.buyerId}:{})};if(!automatic){p.reloadEndsAt=0;p.zoomLevel=0;this.cancelGrenade(p,'pickup');}
     if(!automatic){this.selectSlot(p,w.slot);p.nextShotAt=Math.max(p.nextShotAt,this.clock()+250);}
     this.emit('weapon_picked_up',{playerId:p.id,droppedId:item.id,weaponId:w.id,skinId:item.skinId});return true;
   }
@@ -619,7 +646,7 @@ export class GameRoom {
     const now=this.clock(),held=input.fire||input.fire2;
     if(!held)p.grenadeRequireRelease=false;
     const requested=input.slot===4?input.utilityId:input.slot?Object.keys(p.inventory).find(id=>getWeapon(id).slot===input.slot):p.weapon;
-    if(!p.alive||this.round.phase!=='live'||input.cancelGrenade){this.cancelGrenade(p,input.cancelGrenade?'cancel':'inactive');return;}
+    if(!p.alive||!['live','ended'].includes(this.round.phase)||input.cancelGrenade){this.cancelGrenade(p,input.cancelGrenade?'cancel':'inactive');return;}
     if(p.grenadeState&&requested!==p.grenadeState.weapon){this.cancelGrenade(p,'switch');return;}
     if(!UTILITY_IDS.includes(requested)||!p.inventory[requested]?.ammo)return;
     let state=p.grenadeState;
@@ -638,7 +665,7 @@ export class GameRoom {
   stepGrenade(p){
     const state=p.grenadeState;if(!state)return;
     const now=this.clock();
-    if(!p.alive||this.round.phase!=='live'||p.weapon!==state.weapon||now-p.inputAt>=300){this.cancelGrenade(p,'inactive');return;}
+    if(!p.alive||!['live','ended'].includes(this.round.phase)||p.weapon!==state.weapon||now-p.inputAt>=300){this.cancelGrenade(p,'inactive');return;}
     if(!state.releaseInput||now<state.readyAt||now<p.nextShotAt)return;
     if(p.movementStream&&(p.movementStream.ack<state.releaseInput.moveId||(p.lastJumpId||0)<state.releaseInput.jumpId))return;
     const ammo=p.inventory[state.weapon],w=getWeapon(state.weapon);
@@ -652,7 +679,7 @@ export class GameRoom {
   fire(p, input, command=null) {
     if(p.weapon==='c4'||this.bomb.actorId===p.id&&this.bomb.action)return;
     const now=this.clock(),w=getWeapon(p.weapon),ammo=p.inventory[p.weapon];
-    if(w.slot===4||this.match.status==='ended')return;
+    if(w.slot===4)return;
     if(w.id==='knife'){this.swingKnife(p,input,command);return;}
     const rising=input.fire&&!p.triggerWasDown;p.triggerWasDown=input.fire;
     if(!p.alive || !input.fire || (!w.automatic&&!rising) || !ammo || now<p.nextShotAt)return;
@@ -943,9 +970,10 @@ export class GameRoom {
       if (this.round.phase === 'freeze' && now >= this.round.phaseEndsAt) { this.round.phase = 'live'; this.round.phaseEndsAt = now + this.rules.roundSeconds * 1000; }
       else if (this.round.phase === 'ended' && now >= this.round.phaseEndsAt) { if (this.count('T') && this.count('CT')) this.startRound(); else { this.round.phase = 'waiting'; this.round.phaseEndsAt = 0; } }
     }
-    const canAct = this.round.phase === 'live', canMove=canAct||this.round.phase==='ended';
+    // 回合结束（爆炸/拆弹等展示期）仍开放移动、开火与投掷的自由时间。
+    const freePlay=this.mode==='defuse'&&this.round.phase==='ended';
+    const canAct = this.round.phase === 'live'||freePlay, canMove=canAct||this.round.phase==='ended';
     for (const p of this.players.values()) {
-      if(this.match.status==='ended')break;
       if (!p.alive) {
         if (!p.grounded) stepCorpse(p, dt);
         if (p.respawnAt && now >= p.respawnAt) this.respawn(p);
@@ -977,7 +1005,6 @@ export class GameRoom {
       }
       if(p.objectiveLocked){p.fireQueue.length=0;this.cancelGrenade(p,'objective');}
       const queuedShot=canAct&&!p.objectiveLocked&&!automatic&&this.fireQueued(p);
-      if(this.match.status==='ended')break;
       if(!canAct&&p.fireQueue)p.fireQueue.length=0;
       const awaitingShotMove=p.movementStream&&p.fireQueue?.[0]?.input.moveId>p.movementStream.ack;
       if(this.bomb.actorId===p.id&&this.bomb.action==='plant'&&input.interact)input.slot=5;
@@ -1021,7 +1048,7 @@ export class GameRoom {
     const players = [...this.players.values()].map(p => ({ id: p.id,seat:p.seat, lifeId:p.lifeId,name: p.name, team: p.team, teamId:p.teamId, bot: p.bot, ...(p.controllerId?{controllerId:p.controllerId}:{}),...(p.controlledBotId?{controlledBotId:p.controlledBotId}:{}), agentId:p.agentId||DEFAULT_AGENT_IDS[p.team], x: round2(p.x), y: round2(p.y), z: round2(p.z),
       vx: round2(p.vx), vy: round2(p.vy), vz: round2(p.vz), yaw: round2(p.yaw), pitch: round2(p.pitch), crouch: !!p.crouch, grounded: !!p.grounded,
       ...(p.movementStream?{movementAck:p.movementStream.ack,movementState:movementState(p)}:{}),
-      objectiveLocked:!!p.objectiveLocked,health: p.health, armor: round2(p.armor), helmet:!!p.helmet, defuseKit:!!p.defuseKit,zoomLevel:p.zoomLevel,utilityCounts:Object.fromEntries(UTILITY_IDS.map(id=>[id,p.inventory[id]?.ammo||0])), alive: p.alive, weapon: p.weapon, skinId:this.heldSkin(p), slot: p.slot, ammo: p.inventory[p.weapon]?.ammo || 0, reserve: p.inventory[p.weapon]?.reserve || 0,
+      objectiveLocked:!!p.objectiveLocked,health: p.health, armor: round2(p.armor), helmet:!!p.helmet, defuseKit:!!p.defuseKit,zoomLevel:p.zoomLevel,utilityCounts:Object.fromEntries(UTILITY_IDS.map(id=>[id,p.inventory[id]?.ammo||0])),utilityBudget:Object.fromEntries(UTILITY_IDS.map(id=>[id,this.utilityBudget(p)[id]||0])), alive: p.alive, weapon: p.weapon, skinId:this.heldSkin(p), slot: p.slot, ammo: p.inventory[p.weapon]?.ammo || 0, reserve: p.inventory[p.weapon]?.reserve || 0,
       reserveAmmoAsClips:!!getWeapon(p.weapon).reserveAmmoAsClips,reserveClips:getWeapon(p.weapon).reserveAmmoAsClips?Math.ceil((p.inventory[p.weapon]?.reserve||0)/getWeapon(p.weapon).magazine):0,
       grenadeState:p.grenadeState?{state:'primed',weapon:p.grenadeState.weapon,mode:p.grenadeState.mode,strength:grenadeStrength(p.grenadeState.mode),primedAt:p.grenadeState.primedAt}:{state:'idle',weapon:null,mode:'full',strength:1,primedAt:0},
       reloadRemaining: Math.max(0, (p.reloadEndsAt - now) / 1000),reloadDuration:p.reloadEndsAt?getWeapon(p.weapon).reloadTime:0,reloadElapsed:p.reloadEndsAt?Math.max(0,(now-p.reloadStartedAt)/1000):0,reloadEmpty:!!p.reloadEmpty,reloadCommitted:!!p.reloadEndsAt&&!!p.reloadCommitted,fireReadyRemaining:Math.max(0,((p.inventory[p.weapon]?.reloadReadyAt||0)-now)/1000), money: p.money, kills: p.kills, deaths: p.deaths, assists: p.assists, seq: p.seq,

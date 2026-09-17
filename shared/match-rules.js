@@ -1,6 +1,8 @@
 // MR12 derives from Valve's competitive cfg; repeat MR3 is this room's tie policy.
 export const MATCH_RULES = Object.freeze({ regulationHalfRounds:12, regulationWinTarget:13,
   overtimeHalfRounds:3, overtimeStartMoney:10000, deathmatchWinTarget:100 });
+// CS2 Loss Bonus：失败奖励五档。输一局升一档、赢一局降一档；每个半场（含加时）从 1 档（$1900）开始。
+export const LOSS_BONUS = Object.freeze([1400, 1900, 2400, 2900, 3400]);
 export const TEAM_IDS=Object.freeze(['A','B']);
 export const oppositeSide=side=>side==='CT'?'T':'CT';
 export function botCount(value,fallback=6){return Number.isInteger(value)&&value>=0&&value<=9?value:fallback;}

@@ -46,3 +46,7 @@ export function defaultPrimaryForTeam(team) { return team==='CT'?'m4a1':'ak47'; 
 export const weaponById = getWeapon;
 
 export function weaponSpeedScale(id, zoomLevel=0) { const weapon=getWeapon(id);return (zoomLevel>0?(weapon.scopedMaxSpeed??weapon.maxSpeed??6):(weapon.maxSpeed??6))/6; }
+
+// CS2 击杀奖励：SMG $600、霰弹枪 $900、AWP $100、刀 $1500，其余手枪/步枪/机枪 $300。
+export const KILL_REWARDS = Object.freeze({ nova: 900, mag7: 900, xm1014: 900, sawedoff: 900, mp9: 600, mp7: 600, mac10: 600, bizon: 600, awp: 100, knife: 1500 });
+export const killReward = id => KILL_REWARDS[id] ?? 300;
