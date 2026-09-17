@@ -22,6 +22,8 @@ export const EQUIPMENT = Object.freeze({
 export const UTILITY_IDS = Object.freeze(['hegrenade', 'flashbang', 'smokegrenade','molotov','incgrenade','decoy']);
 export const teamUtilities = team => UTILITY_IDS.filter(id=>EQUIPMENT[id].teams.includes(team));
 export const MAX_GRENADES = 4;
+// 每回合（每条命）的投掷物购买额度：与携带数无关，用掉后本回合也不能补买。
+export const UTILITY_ROUND_LIMITS = Object.freeze({ hegrenade: 1, flashbang: 2, smokegrenade: 1, molotov: 1, incgrenade: 1, decoy: 1 });
 const aliases = Object.freeze({ kevlar: 'armor', vest: 'armor', vesthelm: 'helmet', armorhelmet: 'helmet', kit: 'defusekit', defuser: 'defusekit', he: 'hegrenade', flash: 'flashbang', smoke: 'smokegrenade' });
 export function normalizeEquipment(id) { return typeof id === 'string' ? aliases[id.toLowerCase()] || id.toLowerCase() : ''; }
 export function getEquipment(id) { const key=normalizeEquipment(id);return Object.hasOwn(EQUIPMENT,key)?EQUIPMENT[key]:null; }
