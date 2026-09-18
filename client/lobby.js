@@ -1,11 +1,13 @@
 import {preferences} from './persistence.js';
 import './lobby.css';
 export function mountLobby({connection,onJoin}){
- const element=document.createElement('section');element.className='public-lobby';element.innerHTML='<header><div><span class="eyebrow">COMMUNITY ROOMS</span><h3>联机大厅</h3></div><button type="button" data-refresh>刷新房间</button></header><p data-status role="status">正在获取在线房间…</p><div class="public-rooms"></div><button type="button" data-recover hidden>重新加入上次房间</button>';
- document.querySelector('.match-card').append(element);
- const entry=document.createElement('button');entry.id='menu-lobby';entry.textContent='联机大厅';entry.type='button';entry.onclick=()=>{element.scrollIntoView({behavior:'smooth',block:'center'});refresh();};document.querySelector('.main-nav').append(entry);
+ // 独立弹层界面：顶部导航"联机大厅"点击打开；不再挂载到首页左侧信息栏
+ const element=document.createElement('section');element.className='public-lobby overlay';element.hidden=true;element.innerHTML='<div class="lobby-browser-card"><header><div><span class="eyebrow">COMMUNITY ROOMS</span><h3>联机大厅</h3></div><button type="button" data-refresh>刷新房间</button><button type="button" data-close>关闭 ×</button></header><p data-status role="status">正在获取在线房间…</p><div class="public-rooms"></div><button type="button" data-recover hidden>重新加入上次房间</button></div>';
+ document.body.append(element);
+ const entry=document.createElement('button');entry.id='menu-lobby';entry.textContent='联机大厅';entry.type='button';entry.onclick=()=>{element.hidden=false;refresh();};document.querySelector('.main-nav').append(entry);
  let socket=null,timer=null,busy=false;
  const status=element.querySelector('[data-status]'),list=element.querySelector('.public-rooms'),recover=element.querySelector('[data-recover]');
+ element.querySelector('[data-close]').onclick=()=>{element.hidden=true;};
  function join(code){document.getElementById('room-code').value=code;onJoin(code);}
  function render(rooms){
   list.replaceChildren();entry.textContent=rooms.length?`联机大厅 (${rooms.length})`:'联机大厅';status.textContent=rooms.length?'优先加入已有玩家的房间；加入时会自动腾出人机席位。':'暂无玩家在线，可以创建一个房间。';
@@ -17,7 +19,7 @@ export function mountLobby({connection,onJoin}){
   const last=preferences.readJSON('dust2.last-session');recover.hidden=!rooms.some(r=>r.code===last.room&&r.joinable);recover.onclick=()=>join(last.room);
  }
  function refresh(){
-  if(busy||document.hidden||document.getElementById('menu').hidden)return;
+  if(busy||document.hidden||element.hidden)return; // 面板关闭时不拉取
   busy=true;socket=new WebSocket(connection.socketURL);const current=socket;
   const timeout=setTimeout(()=>current.close(),5000);
   current.onopen=()=>current.send(JSON.stringify({type:'listRooms'}));
@@ -26,6 +28,6 @@ export function mountLobby({connection,onJoin}){
   current.onclose=()=>{clearTimeout(timeout);busy=false;if(socket===current)socket=null;};
  }
  element.querySelector('[data-refresh]').onclick=refresh;
- timer=setInterval(refresh,10000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});refresh();
- return {refresh,dispose(){clearInterval(timer);socket?.close();}};
+ timer=setInterval(refresh,10000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+ return {element,refresh,dispose(){clearInterval(timer);socket?.close();}};
 }

@@ -1,5 +1,21 @@
-.public-lobby{margin-top:20px;border-top:1px solid #ffffff28;padding-top:16px}.public-lobby header{display:flex;align-items:center;justify-content:space-between}.public-lobby h3{margin:4px 0;font-size:20px}.public-lobby p{font-size:12px;color:#acb8bd;line-height:1.6}.public-rooms{max-height:210px;overflow:auto;display:grid;gap:7px}.public-room{display:flex;flex-direction:column;text-align:left;gap:6px;padding:13px;background:#161f25}.public-room span{font-size:12px;color:#abb6bd}.public-room:hover{background:#334450}.public-lobby [data-recover]{margin-top:8px;color:#e8bd68}
+/* 联机大厅：独立弹层界面（顶部导航点击打开） */
+.public-lobby[hidden]{display:none}
+.public-lobby .lobby-browser-card{width:min(560px,92vw);max-height:72vh;display:flex;flex-direction:column;gap:4px;background:rgba(15,22,26,.94);border:1px solid #ffffff26;border-radius:8px;padding:20px 22px 22px;backdrop-filter:blur(14px);box-shadow:0 24px 60px #000a;color:#cfd8d3}
+.public-lobby header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #ffffff22}
+.public-lobby h3{margin:3px 0 0;font-size:20px;color:#eef2e6}
+.public-lobby .eyebrow{font-size:10px;letter-spacing:2px;color:#8fa3a9}
+.public-lobby header button{background:#ffffff12;border:1px solid #ffffff2b;color:#c9d2cd;font-size:11px;letter-spacing:1px;padding:8px 14px;border-radius:4px;cursor:pointer}
+.public-lobby header button:hover{background:#ffffff22;color:#fff}
+.public-lobby [data-status]{font-size:12px;color:#a9b6ad;line-height:1.7;margin:10px 2px}
+.public-rooms{flex:1;min-height:0;overflow:auto;display:grid;gap:8px;padding:2px}
+.public-room{display:flex;flex-direction:column;text-align:left;gap:5px;padding:12px 13px;background:#161f25;border:1px solid #ffffff14;border-radius:5px;cursor:pointer}
+.public-room b{color:#edf1f2;font-size:13px;letter-spacing:.5px}
+.public-room span{font-size:12px;color:#abb6bd}
+.public-room:hover{background:#334450}
+.public-room:disabled{opacity:.5;cursor:default}
+.public-lobby [data-recover]{margin-top:10px;padding:9px 14px;color:#e8bd68;background:#231a10;border:1px solid #7a5a21;border-radius:5px;cursor:pointer}
+/* 桌面端状态提示条挪到左侧信息栏后的适配 */
+.lobby-panel #menu-status{font-size:10px;line-height:1.6;color:#8fa3a9;margin-top:2px;min-height:0;padding:2px 6px}
 body{background:#000}#game-canvas{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%)}
 body.playing #hud{position:fixed;inset:auto;left:50%;top:50%;width:var(--game-width,100vw);height:var(--game-height,100vh);transform:translate(-50%,-50%) scale(var(--game-scale-x,1),var(--game-scale-y,1));transform-origin:center;overflow:hidden}
 html body.playing{background:#000}.config-row select{flex:0 1 65%;width:65%;min-width:0}.shop-refunds{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.shop-refunds button{color:#d4bd82}
-.match-card .public-room b{color:#edf1f2}

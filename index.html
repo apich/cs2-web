@@ -6,9 +6,36 @@
 <div id="menu" class="screen menu-screen">
   <div class="menu-photo"></div><div class="menu-shade"></div>
   <header class="menu-header"><a class="wordmark" href="./">DUST<span>II</span><small>COUNTER-STRIKE WEB</small></a><nav class="main-nav" aria-label="游戏导航"><button id="menu-play-tab" class="active" type="button">开始游戏</button><button id="menu-skins" type="button">装备</button><button id="menu-settings" type="button">设置</button></nav><div class="menu-profile"><span class="profile-online"></span><span>在线大厅</span><b>CS2</b></div></header>
-  <div class="play-bar"><span class="play-bar-active">私人房间</span><span>DUST II · 炙热沙城 II</span><span id="lobby-mode-label">竞技爆破</span></div>
   <main class="menu-content">
+    <aside class="lobby-panel">
     <section class="hero-copy map-showcase"><div class="map-heading"><span class="eyebrow">当前地图</span><span class="map-selection-check">✓ 已选择</span></div><h1>DUST II</h1><p class="map-subtitle">炙热沙城 II</p><div class="map-emblem"><img src="assets/valve-dust2/de_dust2.png" alt="Dust II 地图徽章"></div><div class="map-bottom"><div><b>经典战场</b><span>炸弹拆除任务 · 5 对 5</span></div><span class="map-arrow">‹　›</span></div><div class="map-rules"><b>对局规则</b><p id="room-mode-note">竞技爆破：率先赢得 13 回合；12 回合后双方换边。</p><span id="room-capacity-note">最多 10 名玩家 · 机器人填充空位</span></div></section>
+      <article class="lobby-card">
+        <span class="eyebrow">活动通行证 / OPERATION</span>
+        <b>沙漠行动 · 第一周</b>
+        <p>完成对局提升通行证等级，赢取专属涂装与探员奖励。</p>
+        <div class="lobby-card-progress"><i style="width:46%"></i></div>
+        <small>经验值 460 / 1000</small>
+      </article>
+      <article class="lobby-card">
+        <span class="eyebrow">游戏公告 / NEWS</span>
+        <b>排位赛季 · 新赛季开启</b>
+        <p>竞技排名已重置，冲分可获得赛季限定徽章。</p>
+        <small>2026-09-18 · 官网公告</small>
+      </article>
+    </aside>
+    <section class="lobby-character" aria-label="大厅角色与阵营选择">
+      <div id="lobby-character-stage" class="lobby-character-stage">
+        <div class="lobby-shadow" aria-hidden="true"></div>
+        <!-- TODO: replace with CT character asset（如需更换 CT 大厅立绘素材） -->
+        <img id="lobby-character-img" class="lobby-character-img" src="assets/characters-cs2/previews/ct-sas.webp" alt="反恐精英 CT 角色">
+        <!-- TODO: replace with T character asset（如需更换 T 大厅立绘素材） -->
+      </div>
+      <p id="lobby-faction-name">当前阵营 · 反恐精英 CT</p>
+      <div class="faction-switch" role="group" aria-label="大厅阵营选择">
+        <button type="button" data-faction="CT" class="selected" aria-pressed="true"><span>CT</span>反恐精英</button>
+        <button type="button" data-faction="T" aria-pressed="false"><span>T</span>恐怖分子</button>
+      </div>
+    </section>
     <section class="match-card"><div class="match-heading"><span class="eyebrow">房间设置</span><span class="region">DUST II</span></div><h2>与你的队伍一起出发</h2>
       <div class="room-setup-grid"><div><label class="field-label" for="nickname">玩家名称</label><input id="nickname" maxlength="18" placeholder="输入你的名字" value="Player"></div><div><label class="field-label" for="mode">游戏模式</label><select id="mode"><option value="defuse" selected>竞技爆破 · 13 回合获胜</option><option value="deathmatch">团队死斗 · 100 次击杀</option></select></div></div>
       <div class="bot-setup"><div><label class="field-label" for="bots">机器人数量</label><span>仅创建房间时生效 · 好友可随时加入</span></div><select id="bots" aria-label="创建房间的机器人数量"><option value="0">0 · 仅玩家</option><option value="1">1 名</option><option value="2">2 名</option><option value="3">3 名</option><option value="4">4 名</option><option value="5">5 名</option><option value="6" selected>6 名</option><option value="7">7 名</option><option value="8">8 名</option><option value="9">9 名 · 填满房间</option></select></div>
@@ -25,11 +52,43 @@
   <footer class="menu-footer"><span>WASD 移动　鼠标瞄准　B 购买装备</span><div><button id="menu-offline">本地资源</button><button id="credits-button">素材来源</button></div><span>个人体验版 · 非 Valve 官方产品</span></footer>
 </div>
 
+<div id="mode-select" class="mode-select-screen" hidden>
+  <div class="mode-select-shade"></div>
+  <section class="mode-select-panel" role="dialog" aria-modal="true" aria-label="选择游戏模式">
+    <header class="mode-select-head"><div><span class="eyebrow">开始游戏 / PLAY</span><h2>选择游戏模式</h2></div><button id="mode-back" type="button">返回大厅 ×</button></header>
+    <div class="mode-cards">
+      <button type="button" class="mode-card selected" data-mode-card="defuse" aria-pressed="true">
+        <div class="mode-art mode-art-defuse"></div>
+        <div class="mode-info"><b>爆破模式</b><p>进攻方安放炸弹，防守方阻止爆破。</p><span>13 回合获胜 · 换边加时 · 完整经济系统</span><i>进入 →</i></div>
+      </button>
+      <button type="button" class="mode-card" data-mode-card="deathmatch" aria-pressed="false">
+        <div class="mode-art mode-art-deathmatch"></div>
+        <div class="mode-info"><b>团队死斗</b><p>快速交战，在时间结束前获得更高击杀数。</p><span>先到 100 击杀 · 自动重生 · 节奏更快</span><i>进入 →</i></div>
+      </button>
+    </div>
+    <div class="mode-actions"><span id="mode-select-hint">选择模式后进入战场，资源会缓存加速下次加载</span><button id="mode-start" type="button">确认进入 →</button></div>
+  </section>
+</div>
+
 <div id="loading-screen" class="loading-screen" hidden aria-live="polite">
   <div class="loading-image"></div><div class="loading-shade"></div>
-  <header class="loading-header"><a class="wordmark" href="./">DUST<span>II</span></a><span id="loading-mode">团队死斗</span><button id="cancel-load" type="button">取消加载 ×</button></header>
-  <main class="loading-main"><div class="loading-map-title"><span class="eyebrow">正在进入战场 / LOADING</span><h1>DUST II</h1><span class="loading-location">炙热沙城 II</span><p>中门的每一条视线，<br>都值得你多看一眼。</p><div class="loading-badges"><span id="loading-team">进攻方 T</span><span id="loading-weapon">AK-47 · 火神</span></div></div><div class="loading-tactical"><img src="/assets/valve-dust2/de_dust2_radar_psd.png" alt="Dust II 战术地图，标注 A 与 B 包点"><div><b>战术提示</b><p id="loading-tip">切换 AWP 后，按鼠标右键开镜。停稳后再开枪，射击更精准。</p></div></div></main>
-  <footer class="loading-footer"><div class="loading-stage-row"><span><i id="loading-spinner"></i><b id="load-label">准备下载地图资源</b></span><strong id="load-percent">0%</strong></div><div class="load-track"><i id="load-fill"></i></div><div class="loading-stat-row"><span id="load-bytes">正在获取资源清单…</span><span id="load-rate"></span><span id="load-files"></span></div><div class="loading-step-row"><span data-load-step="download" class="active">01　下载资源</span><span data-load-step="scene">02　准备场景与武器</span><span data-load-step="connect">03　连接对战房间</span></div><div id="loading-error" hidden><p id="loading-error-text"></p><button id="retry-load" type="button">重试加载 ↗</button><button id="back-load" type="button">返回大厅</button></div></footer>
+  <section class="loading-scene">
+    <div class="loading-map-title"><span class="eyebrow">正在进入战场 / LOADING</span><h1>DUST II</h1><span class="loading-location">炙热沙城 II</span><p>中门的每一条视线，<br>都值得你多看一眼。</p><div class="loading-badges"><span id="loading-team">进攻方 T</span><span id="loading-weapon">AK-47 · 火神</span></div></div>
+    <div class="loading-tactical"><img src="/assets/valve-dust2/de_dust2_radar_psd.png" alt="Dust II 战术地图，标注 A 与 B 包点"><div><b>战术提示</b><p id="loading-tip">切换 AWP 后，按鼠标右键开镜。停稳后再开枪，射击更精准。</p></div></div>
+  </section>
+  <aside class="loading-sidebar">
+    <header class="loading-header"><a class="wordmark" href="./">DUST<span>II</span></a><span id="loading-mode">团队死斗</span><button id="cancel-load" type="button">取消加载 ×</button></header>
+    <main class="loading-main">
+      <div class="loading-info-card"><span class="eyebrow" id="loading-map-name">DUST II · 炙热沙城 II</span><b id="loading-map-mode">爆破模式</b><p id="loading-msg">正在检查武器装备……</p></div>
+      <div class="loading-dock">
+        <div class="loading-step-row"><span data-load-step="download" class="active">01　下载资源</span><span data-load-step="scene">02　准备场景与武器</span><span data-load-step="connect">03　连接对战房间</span></div>
+        <div class="loading-stage-row"><span><i id="loading-spinner"></i><b id="load-label">准备下载地图资源</b></span><strong id="load-percent">0%</strong></div>
+        <div class="load-track"><i id="load-fill"></i></div>
+        <div class="loading-stat-row"><span id="load-bytes">正在获取资源清单…</span><span id="load-rate"></span><span id="load-files"></span></div>
+      </div>
+    </main>
+    <footer class="loading-footer"><div id="loading-error" hidden><p id="loading-error-text"></p><button id="retry-load" type="button">重试加载 ↗</button><button id="back-load" type="button">返回大厅</button></div></footer>
+  </aside>
 </div>
 
 <div id="hud" hidden>
