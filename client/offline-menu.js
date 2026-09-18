@@ -15,7 +15,7 @@ export function mountOfflineMenu(){
   async function refresh(){try{const state=await getAssetCacheStats();$('cache-size').textContent=`${(state.bytes/1048576).toFixed(1)} MB 已保存`;$('cache-count').textContent=`基础资源 ${state.baseCount} / ${state.totalCount} 个${state.complete?' · 已完整保存':''}`;$('cache-persistence').textContent=state.persisted?'浏览器已授予持久存储。':'点击保存时将申请持久存储；若浏览器未授予，缓存仍可复用，但可能被浏览器回收。';if(!state.supported)$('cache-persistence').textContent='此浏览器暂不支持持久资源缓存。';}catch(e){$('cache-status').textContent=e.message;}}
   initOffline({onStatus:state=>{offline=state;$('install-game').textContent=state.installed?'已安装到主屏幕':'安装到主屏幕';$('install-game').disabled=!!state.installed;}}).catch(e=>{$('cache-status').textContent=e.message;});
   $('close-offline').onclick=()=>modal.hidden=true;
-  modal.addEventListener('keydown',e=>{if(e.code==='Escape'){modal.hidden=true;e.preventDefault();}});
+  // Esc 由 client/esc-stack.js 统一路由。
   $('save-base-assets').onclick=async()=>{
     if(aborter)return;aborter=new AbortController();$('save-base-assets').disabled=true;$('cancel-cache').hidden=false;
     await requestPersistentStorage().catch(()=>false);

@@ -14,8 +14,8 @@ export function readAgentLoadout(){
 
 /** Loading happens only after selecting a card, before the server equip callback. */
 export class AgentMenu {
-  constructor({onEquip=async()=>{},loadAgent=loadAgentAsset,onEscape}={}){
-    this.loadout=readAgentLoadout();this.onEquip=onEquip;this.onEscape=onEscape;this.loadAgent=loadAgent;
+  constructor({onEquip=async()=>{},loadAgent=loadAgentAsset}={}){
+    this.loadout=readAgentLoadout();this.onEquip=onEquip;this.loadAgent=loadAgent;
     this.busy=false;this.destroyed=false;this.activeTeam='CT';
     const modal=document.createElement('div');modal.id='agent-menu';modal.className='overlay';modal.hidden=true;
     modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
@@ -23,8 +23,8 @@ export class AgentMenu {
     modal.innerHTML=`<section class="agent-card"><header><div><span class="eyebrow">AGENT LOADOUT</span><h2 id="agent-menu-title">探员仓库</h2></div><button class="agent-close" type="button" aria-label="关闭探员仓库">完成 ×</button></header><p id="agent-menu-description">两个阵营分别选择探员。点击装备时下载，已下载的探员保存在本机，下次可继续使用。</p><div class="agent-teams"></div><footer><p>探员只改变外观，战斗属性保持一致。</p><progress class="agent-progress" max="100" hidden aria-label="探员下载进度"></progress><div class="agent-status" role="status" aria-live="polite"></div></footer></section>`;
     document.body.append(modal);this.element=modal;
     modal.querySelector('.agent-close').onclick=()=>this.close();
+    // Esc 由 client/esc-stack.js 统一路由；这里只保留 Tab 焦点循环。
     modal.addEventListener('keydown',event=>{
-      if(event.code==='Escape'){event.preventDefault();event.stopPropagation();if(this.onEscape)this.onEscape();else this.close();return;}
       if(event.code!=='Tab')return;
       const buttons=[...modal.querySelectorAll('button:not(:disabled)')];
       const first=buttons[0],last=buttons.at(-1);
