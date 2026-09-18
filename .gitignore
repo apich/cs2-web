@@ -67,3 +67,6 @@ android/signing/
 *.keystore
 public/downloads/*.apk
 public/downloads/android-latest.json
+
+# 助手工作目录与本地记忆（不入库）
+.workbuddy/
