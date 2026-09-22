@@ -240,6 +240,9 @@ export class UtilityEffects {
     this.fires = [];
     this.carves = [];
     this.activeExplosions = [];
+    // Keep the light count fixed so explosions do not recompile every lit map material.
+    this.explosionLights = Array.from({length:2},()=>new THREE.PointLight(0xffb545,0,16));
+    for(const light of this.explosionLights)scene.add(light);
     this.scorchDecals = [];
     this.clock = 0;
     this.grenadeGeometry = new THREE.CapsuleGeometry(0.045, 0.08, 3, 6);
@@ -695,9 +698,8 @@ export class UtilityEffects {
     this.scene.add(ring);
 
     // 3. Dynamic Light Flash
-    const light = new THREE.PointLight(0xffb545, 5.5, 16);
-    light.position.set(origin.x, origin.y + 0.7, origin.z);
-    this.scene.add(light);
+    const light = this.explosionLights.find(light=>!this.activeExplosions.some(exp=>exp.light===light))||null;
+    if(light){light.position.set(origin.x, origin.y + 0.7, origin.z);light.intensity=5.5;}
 
     // 4. Flying Shrapnel Sparks (20 particles)
     const sparks = [];
@@ -1257,8 +1259,7 @@ export class UtilityEffects {
         if (exp.age < 0.12) {
           exp.light.intensity = 5.5 * (1 - exp.age / 0.12);
         } else {
-          exp.light.removeFromParent();
-          exp.light.dispose();
+          exp.light.intensity = 0;
           exp.light = null;
         }
       }
@@ -1373,7 +1374,7 @@ export class UtilityEffects {
     for (const exp of this.activeExplosions) {
       if (exp.fireball) { exp.fireball.removeFromParent(); exp.fireball.material.dispose(); }
       if (exp.ring) { exp.ring.removeFromParent(); exp.ring.material.dispose(); }
-      if (exp.light) { exp.light.removeFromParent(); exp.light.dispose(); }
+      if (exp.light) exp.light.intensity = 0;
       for (const s of exp.sparks) { s.mesh.removeFromParent(); s.mesh.material.dispose(); }
       for (const st of exp.soots) { st.mesh.removeFromParent(); st.mesh.material.dispose(); }
     }
@@ -1388,6 +1389,7 @@ export class UtilityEffects {
 
   dispose() {
     this.clear();
+    for(const light of this.explosionLights){light.removeFromParent();light.dispose();}
     this.fireMesh.removeFromParent();
     this.flameGeo.dispose();
     this.fireMaterial.dispose();

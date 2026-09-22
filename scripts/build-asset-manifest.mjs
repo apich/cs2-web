@@ -28,6 +28,7 @@ async function walk(dir, group) {
 let entries = [];
 await add('assets/map-cs2/dust2-web.gltf', 'map');
 await add('assets/map/positions.f32', 'collision');
+await add('assets/map/penetration-materials.u8', 'collision');
 await add('assets/sky/daylight.hdr','sky');
 await add('assets/sky/source.json','sky');
 await walk('assets/audio', 'audio');

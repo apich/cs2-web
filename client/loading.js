@@ -35,11 +35,10 @@ function sha256Pure(buffer){
   }
   return [H0,H1,H2,H3,H4,H5,H6,H7].map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
 }
-const digest=async (data,fallbackSha256='')=>{
+const digest=async data=>{
   if(globalThis.crypto?.subtle?.digest){
     try{return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data)),b=>b.toString(16).padStart(2,'0')).join('');}catch{}
   }
-  if(fallbackSha256)return fallbackSha256.toLowerCase();
   return sha256Pure(data);
 };
 const changed=()=>{if(typeof window!=='undefined'&&typeof CustomEvent!=='undefined')window.dispatchEvent(new CustomEvent('dust2-cache-change'));};
@@ -89,7 +88,7 @@ async function readCachedAsset(value,{sha256,bytes,signal,onProgress}={}){
     else{const value=new Uint8Array(await response.arrayBuffer());chunks.push(value);received=value.byteLength;}}
   catch(error){await reader?.cancel(error).catch(()=>{});throw error;}
   check(signal);if(Number.isFinite(bytes)&&received!==bytes)throw new Error(`资源不完整：${url.pathname.split('/').pop()}，请重试`);
-  const blob=new Blob(chunks,{type:response.headers.get('content-type')||'application/octet-stream'}),actual=await digest(await blob.arrayBuffer(),sha256);
+  const blob=new Blob(chunks,{type:response.headers.get('content-type')||'application/octet-stream'}),actual=await digest(await blob.arrayBuffer());
   check(signal);if(sha256&&actual!==sha256)throw new Error(`资源校验失败：${url.pathname.split('/').pop()}，请重试`);
   const headers=new Headers(response.headers);headers.delete('content-encoding');headers.delete('transfer-encoding');headers.set('content-length',String(received));
   headers.set('x-dust2-sha256',actual);headers.set('x-dust2-bytes',String(received));headers.set('x-dust2-asset-url',url.href);

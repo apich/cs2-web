@@ -16,5 +16,6 @@ test('mobile map preserves every mesh, material and texture association; manifes
  const manifest=await json('../public/assets/asset-manifest-mobile.json'),full=await json('../public/assets/asset-manifest.json');
  assert.ok(!manifest.files.some(f=>f.path.startsWith('assets/map-cs2/textures/')));
  assert.ok(manifest.files.some(f=>f.path==='assets/map-mobile/dust2-mobile.gltf'));
+ for(const list of [manifest,full])assert.ok(list.files.some(f=>f.path==='assets/map/penetration-materials.u8'));
  assert.ok(manifest.totalBytes<full.totalBytes*.7);
 });

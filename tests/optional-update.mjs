@@ -29,6 +29,39 @@ test('refund only unused current-round purchased gun, never fired/dropped/picked
  r.buy(p.id,'ak47');r.dropWeapon(p.id);assert.equal(r.refund(p.id,'ak47').ok,false);r.pickupWeapon(p);assert.equal(r.refund(p.id,'ak47').ok,false);
  r.buy(p.id,'galilar');r.round.number++;assert.equal(r.refund(p.id,'galilar').ok,false);
 });
+test('grenade refunds preserve carried stock and only return current-round purchases',()=>{
+ const {r,p}=fixture();Object.assign(p,MAP.spawns.T[0],{money:10000});
+ p.inventory.flashbang={ammo:1,reserve:0}; // Survived the previous round.
+ assert.equal(r.buy(p.id,'flashbang').ok,true);
+ assert.equal(r.refundable(p).find(item=>item.weapon==='flashbang').price,200);
+ assert.equal(r.refund(p.id,'flashbang').ok,true);
+ assert.equal(p.money,10000);assert.equal(p.inventory.flashbang.ammo,1);
+ assert.equal(r.refund(p.id,'flashbang').ok,false);
+});
+
+test('refunding an unthrown flash never restores the quota of a thrown flash',()=>{
+ const {r,p,advance}=fixture();Object.assign(p,MAP.spawns.T[0],{money:10000});
+ assert.equal(r.buy(p.id,'flashbang').ok,true);assert.equal(r.buy(p.id,'flashbang').ok,true);
+ r.receiveInput(p.id,input(1,{slot:4,utilityId:'flashbang'}));r.selectSlot(p,4,'flashbang');advance(400);
+ r.receiveInput(p.id,input(2,{slot:4,utilityId:'flashbang',fire:true}));advance(250);
+ r.receiveInput(p.id,input(3,{slot:4,utilityId:'flashbang'}));r.stepGrenade(p);
+ assert.equal(r.grenades.projectiles.length,1);assert.equal(p.inventory.flashbang.ammo,1);
+ assert.equal(r.refund(p.id,'flashbang').ok,true);assert.equal(p.money,9800);
+ assert.equal(r.utilityBudget(p).flashbang,1);
+ assert.equal(r.buy(p.id,'flashbang').ok,true);
+ assert.equal(r.buy(p.id,'flashbang').ok,false);
+});
+
+test('refunding a primed grenade cancels the throw and refunds both unused flashes',()=>{
+ const {r,p,advance}=fixture();Object.assign(p,MAP.spawns.T[0],{money:10000});
+ r.buy(p.id,'flashbang');r.buy(p.id,'flashbang');
+ r.receiveInput(p.id,input(1,{slot:4,utilityId:'flashbang'}));r.selectSlot(p,4,'flashbang');advance(400);
+ r.receiveInput(p.id,input(2,{slot:4,utilityId:'flashbang',fire:true}));
+ assert.ok(p.grenadeState);assert.equal(r.refund(p.id,'flashbang').ok,true);
+ assert.equal(p.money,10000);assert.equal(p.grenadeState,null);assert.equal(p.inventory.flashbang,undefined);
+ assert.equal(r.utilityBudget(p).flashbang,0);assert.equal(r.refund(p.id,'flashbang').ok,false);
+});
+
 test('empty-slot proximity pickup preserves active reload/scope, does not take own immediate drop or replace occupied slot',()=>{
  const {r,p,ct,advance}=fixture();Object.assign(p,{x:0,y:0,z:0});Object.assign(ct,{x:0,y:0,z:0});
  r.droppedWeapons.drop(ct,{weaponId:'awp',ammo:3,reserve:12,skinId:'awp-gungnir'});advance(400);p.reloadEndsAt=200000;p.zoomLevel=1;

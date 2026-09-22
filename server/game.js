@@ -392,7 +392,13 @@ export class GameRoom {
     if (weapon === 'armor') { p.armor = 100; (p.purchases||={}).armor={price,round:this.round.number,life:p.lifeId}; }
     else if(weapon==='helmet'){p.armor=100;p.helmet=true;const prevArmor=(p.purchases||={}).armor;if(prevArmor&&prevArmor.round===this.round.number&&prevArmor.life===p.lifeId)prevArmor.price=Math.min(prevArmor.price+price,1000);else p.purchases.armor={price,round:this.round.number,life:p.lifeId};}
     else if(weapon==='defusekit'){p.defuseKit=true;(p.purchases||={}).defusekit={price,round:this.round.number,life:p.lifeId};}
-    else if(equipment?.slot===4){p.inventory[weapon]||={ammo:0,reserve:0};p.inventory[weapon].ammo++;(p.purchases||={})[weapon]={price,round:this.round.number,life:p.lifeId};this.utilityBudget(p)[weapon]=(this.utilityBudget(p)[weapon]||0)+1;}
+    else if(equipment?.slot===4){
+      p.inventory[weapon]||={ammo:0,reserve:0};p.inventory[weapon].ammo++;
+      const previous=(p.purchases||={})[weapon];
+      const count=previous?.round===this.round.number&&previous.life===p.lifeId?previous.count:0;
+      p.purchases[weapon]={price,count:(count||0)+1,round:this.round.number,life:p.lifeId};
+      this.utilityBudget(p)[weapon]=(this.utilityBudget(p)[weapon]||0)+1;
+    }
     else { for (const id of Object.keys(p.inventory)) if (getWeapon(id).slot === gun.slot){const ammo=p.inventory[id],drop=this.droppedWeapons.drop(p,{weaponId:id,skinId:this.heldSkin(p,id),ammo:ammo.ammo,reserve:ammo.reserve,...(ammo.reloadReadyAt?{reloadReadyAt:ammo.reloadReadyAt}:{}),...(p.inventory[id].buyerId?{buyerId:p.inventory[id].buyerId}:{})});delete p.inventory[id];this.emit('weapon_dropped',{playerId:p.id,droppedId:drop.id,weaponId:id,skinId:drop.skinId,death:false});} this.giveWeapon(p, weapon);p.inventory[weapon].buyerId=p.id;if(gun.slot===1)p.loadoutPrimary=weapon;p.reloadEndsAt=0;p.zoomLevel=0;this.selectSlot(p, gun.slot); }
 
     // 购买替换掉落的旧枪仍归原买家所有：保留其购买记录与 buyerId，捡回后仍可退款。
@@ -409,7 +415,7 @@ export class GameRoom {
       if(r.round!==this.round.number||r.life!==p.lifeId)continue;
       if(id==='armor'){if(p.armor>0)list.push({weapon:'armor',price:r.price});continue;}
       if(id==='defusekit'){if(p.defuseKit)list.push({weapon:'defusekit',price:r.price});continue;}
-      if(getEquipment(id)?.slot===4){const ammo=p.inventory[id]?.ammo||0;if(ammo>0)list.push({weapon:id,price:r.price*ammo});continue;}
+      if(getEquipment(id)?.slot===4){const count=Math.min(p.inventory[id]?.ammo||0,r.count||0);if(count>0)list.push({weapon:id,price:r.price*count,count});continue;}
       if(p.inventory[id]&&p.inventory[id].buyerId===p.id)list.push({weapon:id,price:r.price});
     }
     return list;
@@ -420,7 +426,12 @@ export class GameRoom {
     this.cancelReload(p);
     if(weapon==='armor'){p.armor=0;p.helmet=false;}
     else if(weapon==='defusekit'){p.defuseKit=false;}
-    else if(getEquipment(weapon)?.slot===4){delete p.inventory[weapon];if(p.utilityBudget)delete p.utilityBudget[weapon];}
+    else if(getEquipment(weapon)?.slot===4){
+      this.cancelGrenade(p,'refund');
+      p.inventory[weapon].ammo-=receipt.count;
+      if(!p.inventory[weapon].ammo)delete p.inventory[weapon];
+      const budget=this.utilityBudget(p);budget[weapon]=Math.max(0,(budget[weapon]||0)-receipt.count);
+    }
     else delete p.inventory[weapon];
     delete p.purchases[weapon];
     p.money=Math.min(16000,p.money+receipt.price);
@@ -671,6 +682,8 @@ export class GameRoom {
     const ammo=p.inventory[state.weapon],w=getWeapon(state.weapon);
     if(!ammo?.ammo||!this.grenades.throwGrenade(p,state.weapon,{...state.releaseInput,throwMode:state.mode,throwStrength:grenadeStrength(state.mode)})){this.cancelGrenade(p,'unavailable');return;}
     ammo.ammo--;if(ammo.ammo===0)delete p.inventory[state.weapon];
+    const purchase=p.purchases?.[state.weapon];
+    if(purchase?.round===this.round.number&&purchase.life===p.lifeId&&purchase.count>0)purchase.count--;
     p.grenadeState=null;p.grenadeRequireRelease=true;p.lastShotTime=now;p.nextShotAt=now+w.fireInterval*1000;p.protectionUntil=0;
     const fallback=Object.keys(p.inventory).some(id=>getWeapon(id).slot===1)?1:Object.keys(p.inventory).some(id=>getWeapon(id).slot===2)?2:3;
     this.selectSlot(p,fallback);
