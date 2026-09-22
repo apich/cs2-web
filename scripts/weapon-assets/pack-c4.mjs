@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
 import {Matrix4} from '../../node_modules/three/build/three.module.js';
-const require=createRequire('C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/package.json');
+const require=createRequire(import.meta.url);
 const sharp=require('sharp');
 const root=path.resolve(import.meta.dirname,'../..'),out=path.join(root,'public/assets/weapons/cs2-utility');fs.mkdirSync(out,{recursive:true});
 const models=[];

@@ -5,15 +5,22 @@ import {createRequire} from 'node:module';
 import {Matrix4,Vector3,Quaternion} from '../../node_modules/three/build/three.module.js';
 import {pristinePaintCoverage} from './pristine-coverage.mjs';
 import {resizePackedRgba} from './packed-texture.mjs';
-const require=createRequire('C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/package.json');
+const require=createRequire(import.meta.url);
 const sharp=require('sharp');
 const legacyCatalog=process.argv.includes('--legacy');
+// A full-catalog run overrides the spec list, output directory and manifest name
+// so the 24 audited defaults keep their own folder, manifest and validators.
+const specsArg=process.argv.find(a=>a.startsWith('--specs='))?.slice(8);
+const outArg=process.argv.find(a=>a.startsWith('--out='))?.slice(6);
+const manifestArg=process.argv.find(a=>a.startsWith('--manifest='))?.slice(11);
 const extraction=path.resolve(legacyCatalog?'output/cs2-skins':'artifacts/weapon-expansion');
 const source=path.join(extraction,'source');
-const out=path.resolve(legacyCatalog?'public/assets/weapons/cs2-skins':'public/assets/weapons/cs2-loadout');
+const out=path.resolve(outArg?path.join('public',outArg):legacyCatalog?'public/assets/weapons/cs2-skins':'public/assets/weapons/cs2-loadout');
 const paintdir=path.join(source,'materials/models/weapons/customization/paints/vmats');
 const legacy='materials/models/weapons/customization/';
-const allSpecs=JSON.parse(fs.readFileSync(new URL(legacyCatalog?'./legacy-skins.json':'./default-skins.json',import.meta.url),'utf8'));
+const allSpecs=JSON.parse(fs.readFileSync(new URL(specsArg||(legacyCatalog?'./legacy-skins.json':'./default-skins.json'),import.meta.url),'utf8'));
+const manifestName=manifestArg||(legacyCatalog?'legacy-manifest.json':'manifest.json');
+const sumsName=manifestArg?manifestArg.replace(/\.json$/,'.txt').replace(/manifest/,'SHA256SUMS'):legacyCatalog?'LEGACY-SHA256SUMS.txt':'SHA256SUMS.txt';
 const filter=process.argv.find(a=>a.startsWith('--ids='))?.slice(6).split(',');
 const specs=allSpecs.filter(s=>!filter||filter.includes(s.id));
 fs.mkdirSync(out,{recursive:true});
@@ -32,9 +39,23 @@ async function bake(spec){
   const inputFile=path.join(source,spec.input),q=params(inputFile),indir=path.dirname(inputFile);
   const n=2048;
   const used=[paintFile,inputFile];
-  const patternFile=local(paintdir,p.TexturePattern);used.push(patternFile);
-  const pMeta=await sharp(patternFile).metadata(),pn=pMeta.width;
-  const pattern=await rgba(patternFile,pn);
+  let pattern,pn;
+  if(p.TexturePattern){
+    const patternFile=local(paintdir,p.TexturePattern);used.push(patternFile);
+    const pMeta=await sharp(patternFile).metadata();pn=pMeta.width;
+    pattern=await rgba(patternFile,pn);
+  }else{
+    // Anodized solid finishes (F_PAINT_STYLE 3) carry no pattern artwork; the
+    // paint colour is g_vColor0 alone. Synthesise a 1x1 pattern holding that
+    // colour. g_vColor* are sRGB-encoded in the vmat (bake-finishes converts
+    // them with srgbToLinear below), and the pattern-image branch consumes sRGB
+    // bytes, so the value is used directly. Alpha 255 disables region masking
+    // and the Custom Paint Job durability range, which only apply to artwork.
+    pn=1;
+    const solid=vec(p.g_vColor0).slice(0,3);
+    if(solid.length<3||solid.some(v=>!Number.isFinite(v)))throw Error(spec.file+': anodized finish without g_vColor0');
+    pattern=Buffer.from([...solid.map(v=>Math.round(clamp(v)*255)),255]);
+  }
   const inputs={};
   for(const key of ['TextureColor1','TextureMasks1','TextureAmbientOcclusion1','TextureNoPaint1','TextureRoughness1','TextureMetalness1']){
     if(!q[key])continue; if(q[key].startsWith('[')){const pixel=Buffer.from(vec(q[key]).map(v=>Math.round(clamp(v)*255)));inputs[key]=Buffer.alloc(n*n*4);for(let offset=0;offset<inputs[key].length;offset+=4)pixel.copy(inputs[key],offset);continue;} const file=local(indir,q[key]);used.push(file);inputs[key]=await rgba(file,n);
@@ -43,6 +64,9 @@ async function bake(spec){
   const separate=q.F_SEPARATE_CHANNEL_INPUTS==='1';
   const style=Number(p.F_PAINT_STYLE),brightness=Number(p.g_flColorBrightness||1),scale=Number(p.g_flPatternTexCoordScale||1),angle=Number(p.g_flPatternTexCoordRotation||0)*Math.PI/180;
   const positionFile=path.join(extraction,'glock-position.f32');
+  // Anodized-airbrushed finishes need the glock object-position map. When it is
+  // absent the finish is skipped rather than aborting a whole-catalog run.
+  if(style===5&&!fs.existsSync(positionFile))throw new SkipFinish('missing glock-position.f32');
   const positionBytes=style===5?fs.readFileSync(positionFile):null;
   if(positionBytes)used.push(positionFile);
   const position=positionBytes?new Float32Array(positionBytes.buffer,positionBytes.byteOffset,positionBytes.byteLength/4):null;
@@ -103,7 +127,10 @@ async function bake(spec){
   await sharp(albedo,{raw:{width:n,height:n,channels:3}}).jpeg({quality:96,chromaSubsampling:'4:4:4'}).toFile(albedoFile);
   await sharp(orm,{raw:{width:n,height:n,channels:3}}).resize(1024).jpeg({quality:97,chromaSubsampling:'4:4:4'}).toFile(ormFile);
   let normalFile;
-  if(p.TextureNormal){
+  // A paint may point at the shared materials/default/default_normal.tga, or at a
+  // constant colour vector, when it has no normal of its own. Those finishes keep
+  // the weapon's surface normal instead.
+  if(p.TextureNormal&&!p.TextureNormal.startsWith('[')&&!/materials\/default\/default_normal\./.test(p.TextureNormal)){
     const normalSource=local(paintdir,p.TextureNormal);used.push(normalSource);normalFile=path.join(bakeDir,'normal.jpg');
     const normal=await rgba(normalSource,1024);
     // Direct material exports retain Source's tangent normal orientation; glTF uses +Y.
@@ -117,8 +144,10 @@ async function bake(spec){
   }
   return {p,q,n,style,albedoFile,ormFile,normalFile,pearlFile,used,paintFile,inputFile};
 }
-const reports=[];
+const reports=[],failures=[];
+class SkipFinish extends Error{}
 for(const spec of specs){
+  try{
   const previewSource=path.join(source,'panorama/images/econ/default_generated',spec.inventory+'_light_png.png');
   const previewTarget=path.join(out,spec.preview||'previews/'+spec.file+'.webp');fs.mkdirSync(path.dirname(previewTarget),{recursive:true});
   await sharp(previewSource).resize(512,384,{fit:'inside',withoutEnlargement:true}).webp({quality:92}).toFile(previewTarget);
@@ -127,8 +156,13 @@ for(const spec of specs){
   const doc=JSON.parse(bytes.toString('utf8',20,20+jsonLength));
   const binary=bytes.subarray(28+jsonLength,28+jsonLength+bytes.readUInt32LE(20+jsonLength));
   const selectedIndex=doc.meshes.findIndex(m=>m.name.endsWith('.body_'+spec.body));
-  if(selectedIndex<0)throw new Error('Missing correct UV body '+spec.id);
-  const selected=doc.meshes[selectedIndex];
+  // Some models expose only one UV body. Anodized and airbrushed finishes are
+  // flagged for the HD body in items_game.txt, but knives ship a legacy body
+  // only, so fall back to whichever body the model actually has.
+  const resolvedIndex=selectedIndex>=0?selectedIndex:doc.meshes.findIndex(m=>/\.body_(legacy|hd)$/.test(m.name));
+  if(resolvedIndex<0)throw new Error('Missing correct UV body '+spec.id);
+  if(resolvedIndex!==selectedIndex)console.log(`NOTE ${spec.id}: requested body_${spec.body}, using ${doc.meshes[resolvedIndex].name.split('.').pop()}`);
+  const selected=doc.meshes[resolvedIndex];
   const sourcePrims=selected.primitives.filter(primitive=>doc.materials[primitive.material].name!=='sticker_gaps');
   const result={asset:{version:'2.0',generator:'Source2Viewer 20.0.6980; local CS2 paintkit PBR bake',copyright:'Valve Corporation and the original workshop creators. Personal prototype; not CC0.'},scene:0,scenes:[],nodes:structuredClone(doc.nodes),skins:[],meshes:[],accessors:[],bufferViews:[],buffers:[{byteLength:0}],materials:[],textures:[],images:[],samplers:[{magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497}]};
   const chunks=[];let total=0;const accessorMap=new Map(),viewMap=new Map(),materialMap=new Map(),textureMap=new Map();
@@ -171,7 +205,7 @@ for(const spec of specs){
   for(let i=0;i<result.nodes.length;i++){
     const node=result.nodes[i];
     if(node.mesh===undefined)continue;
-    if(node.mesh!==selectedIndex){delete node.mesh;delete node.skin;continue;}
+    if(node.mesh!==resolvedIndex){delete node.mesh;delete node.skin;continue;}
     selectedNodes.add(i);node.mesh=0;
     if(node.skin!==undefined){
       if(!skinMap.has(node.skin)){const skin=structuredClone(doc.skins[node.skin]);skin.inverseBindMatrices=accessor(skin.inverseBindMatrices);skinMap.set(node.skin,result.skins.length);result.skins.push(skin);}
@@ -193,6 +227,14 @@ for(const spec of specs){
   const previewFile=previewTarget;
   reports.push({id:spec.id,name:spec.name,file:spec.file+'.glb',paintkit:spec.paintkit,paintKey:spec.paint,bytes:output.length,sha256:hash(filename),triangles,sizeMetres:size,sourceBounds:{minimum,maximum,center},up:'+Y',forward:'-Z',normalizationNode:'normalization',sourceToNormalized:normalization.toArray(),normalizedToSource:normalization.clone().invert().toArray(),sourceScale:1,sourceForward:'+Z',sourceUp:'+Y',sourceUVBody:spec.body,sourceMesh:selected.name,rawGLB:rel(input),rawGLBSha256:hash(input),animations:[],joints,wearMin:spec.wearMin,wearMax:spec.wearMax,condition:'Factory New',chineseName:spec.chineseName,englishName:spec.englishName,preview:{file:spec.preview||'previews/'+spec.file+'.webp',sourceVpkPath:'panorama/images/econ/default_generated/'+spec.inventory+'_light_png.vtex_c',bytes:fs.statSync(previewFile).size,sha256:hash(previewFile)},parameters:{paintStyle:Number(p.F_PAINT_STYLE),patternScale:Number(p.g_flPatternTexCoordScale),patternRotation:Number(p.g_flPatternTexCoordRotation),patternOffset:[0,0],seedEquivalentToCS2:false,wear:0,paintRoughness:Number(p.g_flPaintRoughness),pearlescentScale:Number(p.g_flPearlescentScale),colors:[0,1,2,3].filter(i=>p['g_vColor'+i]).map(i=>vec(p['g_vColor'+i]))},sourceFiles:bakeResult.used.map(file=>({file:rel(file),sha256:hash(file)}))});
   console.log(spec.id,output.length,'bytes',triangles,'triangles',joints.length,'joints',spec.body);
+  }catch(error){
+    if(error instanceof SkipFinish){failures.push({file:spec.file,reason:error.message});console.log(`SKIP ${spec.file}: ${error.message}`);continue;}
+    failures.push({file:spec.file,reason:error.message});
+    console.error(`FAIL ${spec.file}: ${error.message}`);
+  }
 }
-fs.writeFileSync(path.join(out,filter?'manifest-'+filter.join('-')+'.json':legacyCatalog?'legacy-manifest.json':'manifest.json'),JSON.stringify({version:1,extractedAt:new Date().toISOString(),source:'Local owned Counter-Strike 2 installation; pak01_dir.vpk; Valve and workshop creators retain rights.',fidelity:'Original source geometry, correct paintkit UV body, original skin textures, normals, paint masks and parameters. Local pristine PBR bake; Source2 wear randomization, exact composite shader and pearlescence are not reproduced exactly.',tools:{exporter:'Source2Viewer-CLI 20.0.6980',baker:rel(new URL(import.meta.url).pathname.slice(1)),bakerSha256:hash(new URL(import.meta.url))},models:reports},null,2)+'\n');
-fs.writeFileSync(path.join(out,filter?'SHA256SUMS-'+filter.join('-')+'.txt':legacyCatalog?'LEGACY-SHA256SUMS.txt':'SHA256SUMS.txt'),reports.flatMap(m=>[m.sha256+'  '+m.file,m.preview.sha256+'  '+m.preview.file]).join('\n')+'\n');
+if(failures.length)console.log(`\n${failures.length} of ${specs.length} finishes were not baked:`);
+for(const failure of failures)console.log(`  ${failure.file}: ${failure.reason}`);
+console.log(`Baked ${reports.length} of ${specs.length} finishes into ${path.relative(process.cwd(),out)}.`);
+fs.writeFileSync(path.join(out,filter?'manifest-'+filter.join('-')+'.json':manifestName),JSON.stringify({version:1,extractedAt:new Date().toISOString(),source:'Local owned Counter-Strike 2 installation; pak01_dir.vpk; Valve and workshop creators retain rights.',fidelity:'Original source geometry, correct paintkit UV body, original skin textures, normals, paint masks and parameters. Local pristine PBR bake; Source2 wear randomization, exact composite shader and pearlescence are not reproduced exactly.',tools:{exporter:'Source2Viewer-CLI 20.0.6980',baker:rel(new URL(import.meta.url).pathname.slice(1)),bakerSha256:hash(new URL(import.meta.url))},models:reports},null,2)+'\n');
+fs.writeFileSync(path.join(out,filter?'SHA256SUMS-'+filter.join('-')+'.txt':sumsName),reports.flatMap(m=>[m.sha256+'  '+m.file,m.preview.sha256+'  '+m.preview.file]).join('\n')+'\n');

@@ -17,17 +17,25 @@ const rows=[
   ['bizon','smg','rifle'],['scar20','snip','rifle'],['m4a4','rif','rifle'],['ssg08','snip','rifle'],
   ['tec9','pist','pistol'],['xm1014','shot','rifle'],['sawedoff','shot','rifle'],['mac10','smg','rifle'],
   ['galilar','rif','rifle'],['sg553','rif','rifle','sg556'],
+  // Core weapons whose raw GLBs were previously exported outside this repository.
+  ['ak47','rif','rifle'],['m4a1','rif','rifle','m4a1_silencer'],['awp','snip','rifle'],
+  ['pistol','pist','pistol','glock18'],['usp','pist','pistol','usp_silencer'],
+  // Knives live one directory deeper and use a weapon_knife_ prefix.
+  ['knife','knife','knife','knife_karambit','weapons/models/knife/knife_karambit/weapon_knife_karambit.vmdl_c'],
 ];
 const entries=new Map(readVpkIndex(vpk).entries.map(entry=>[entry.path,entry]));
-const manifest=rows.map(([id,type,animationType,sourceId=id])=>{
-  const model=`weapons/models/${sourceId}/weapon_${type}_${sourceId}.vmdl_c`;
+const manifest=rows.map(([id,type,animationType,sourceId=id,modelOverride])=>{
+  const model=modelOverride||`weapons/models/${sourceId}/weapon_${type}_${sourceId}.vmdl_c`;
   const directory=`animation/anims/viewmodel/${animationType}/${animationType}_${sourceId}`;
   const clips={draw:`draw_${sourceId}`,idle:`idle_${sourceId}`,reload:`reload_${sourceId}`,shoot:`shoot1_${sourceId}`,inspect:`lookat01_${sourceId}`};
   if(id==='elite'){clips.shoot=`shoot_right1_${sourceId}`;clips.shoot2=`shoot_left1_${sourceId}`;}
   if(entries.has(`${directory}/reload_empty_${sourceId}.vnmclip_c`))clips.reloadEmpty=`reload_empty_${sourceId}`;
   if(id==='ssg08')for(const [action,stem]of Object.entries({...clips}))if(entries.has(`${directory}/${stem}_lgcy.vnmclip_c`))clips[action+'Legacy']=stem+'_lgcy';
   if(!entries.has(model))throw Error('Missing model '+model);
-  for(const stem of Object.values(clips))if(!entries.has(`${directory}/${stem}.vnmclip_c`))throw Error('Missing original animation '+directory+'/'+stem);
+  // Animations are only required when they are actually being exported. The
+  // shared viewmodel bundle already covers every weapon family, so `--models`
+  // alone must not demand clips that a weapon (a knife) never had.
+  if(doAnimations)for(const stem of Object.values(clips))if(!entries.has(`${directory}/${stem}.vnmclip_c`))throw Error('Missing original animation '+directory+'/'+stem);
   return{id,sourceId,model,modelBytes:entries.get(model).length,animationDirectory:directory,clips};
 });
 if(ids?.some(id=>!manifest.some(spec=>spec.id===id)))throw Error('Unknown --ids value');

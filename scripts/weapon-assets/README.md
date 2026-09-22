@@ -54,3 +54,41 @@ joints and firing clips. SSG 08 Dragonfire uses its matching legacy animation se
 Audio is read from the original weapon sound event definitions, exported with
 Source2Viewer and converted to MP3 at 44.1 kHz with a -3 dB gain. The exporter
 merges new banks into the existing manifest and preserves earlier feedback audio.
+
+## Full catalog (every finish the VPK offers)
+
+`index-paintkits.mjs` writes `artifacts/weapon-expansion/paintkit-candidates.json`,
+which lists every paintkit whose material and inventory preview both exist in the
+VPK. Feeding that into the baker produces the whole catalog instead of the 24
+audited defaults:
+
+```powershell
+node scripts/weapon-assets/build-full-catalog.mjs      # specs from the candidates
+node scripts/weapon-assets/extract-finishes.mjs --specs=full-catalog.json
+node scripts/weapon-assets/bake-finishes.mjs --specs=full-catalog.json --out=assets/weapons/cs2-full --manifest=full-manifest.json
+node scripts/weapon-assets/append-full-catalog.mjs     # adds the finishes to shared/skins.js
+node scripts/weapon-assets/disambiguate-skin-names.mjs --write
+node scripts/build-asset-lock.mjs
+```
+
+Two behaviours matter here:
+
+- **`shared/skins.js` is read by both the client and the server.** Node caches the
+  module at import time, so a running `node server/index.js` keeps the catalog it
+  booted with. A finish added while the server is up is rejected by `equipSkin`
+  and silently falls back to the default on the next join, which looks like the
+  skin cannot be equipped. **Restart the server after every catalog change.**
+- `extract-finishes.mjs` batches its Source2Viewer calls: a full-catalog run needs
+  ~1,600 sources, far past the Windows command-line limit.
+
+`bake-finishes.mjs` skips a finish instead of aborting the run when it cannot be
+baked, and reports each one at the end. Two source-data quirks need the fallbacks
+in the baker: knives ship a `body_legacy` mesh only even when `items_game.txt`
+flags a finish for the HD body, and some finishes declare `TextureNormal` as a
+constant colour or point at the shared `materials/default/default_normal.tga`
+when they have no normal of their own.
+
+`report-name-collisions.mjs` lists finishes that share a display name inside one
+weapon. CS2 localises every Doppler phase as just "Doppler", so those are
+indistinguishable in the grid until `disambiguate-skin-names.mjs` appends the
+distinguishing part of the paint key.
