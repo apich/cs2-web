@@ -14,9 +14,11 @@ export { ViewWeapon } from './viewmodel.js';
 const loader=new GLTFLoader();
 const library={};
 const sourceBasisInverse=new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(-.5,-.5,-.5,.5)).invert();
-export async function loadModels(options={}){
-  const agents=await loadPlayerAssets(loader);library.swat=agents.CT;library.hoodie=agents.T;
-  await loadViewModels(library);
+let modelsPromise=null;
+export function loadModels(options={}){
+  // Promise 缓存：大厅角色展示与对局 loadGame() 可能先后触发，共享同一次加载
+  if(!modelsPromise)modelsPromise=(async()=>{const agents=await loadPlayerAssets(loader);library.swat=agents.CT;library.hoodie=agents.T;await loadViewModels(library);})();
+  return modelsPromise;
 }
 
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:.8}));}

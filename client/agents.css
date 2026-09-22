@@ -1,5 +1,5 @@
 #agent-menu{z-index:126}
-.agent-card{width:min(1040px,95vw);max-height:90vh;overflow:auto;padding:28px;background:#152024f7;border:1px solid #ffffff26;box-shadow:0 24px 100px #0008}
+.agent-card{width:min(1280px,96vw);max-height:92vh;overflow:auto;padding:28px;background:#131c21b8;backdrop-filter:blur(22px) saturate(1.15);border:1px solid #ffffff26;box-shadow:0 24px 100px #0009}
 .agent-card>header{display:flex;justify-content:space-between;align-items:center;gap:20px}
 .agent-card h2{font-size:30px;margin:10px 0}
 .agent-card>p,.agent-card footer>p{font-size:12px;color:#aabac0;line-height:1.8;margin:8px 0 20px}
