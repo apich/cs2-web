@@ -249,9 +249,9 @@ test('CS2 Remote Player 3D Spatial Audio: hearing enemy/teammate footsteps with 
 });
 
 test('CS2 Ground Material Awareness: detects sand in Pit, wood, metal, and concrete', () => {
-  const raw = fs.readFileSync('dist/assets/map/positions.f32');
+  const raw = fs.readFileSync(new URL('../public/assets/map/positions.f32', import.meta.url));
   const positions = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4);
-  const materials = fs.readFileSync('dist/assets/map/penetration-materials.u8');
+  const materials = fs.readFileSync(new URL('../public/assets/map/penetration-materials.u8', import.meta.url));
   initPhysics(positions, materials);
 
   // Pit area

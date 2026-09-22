@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import {SKINS,DEFAULT_SKINS,getSkin,normalizeSkinLoadout} from '../shared/skins.js';
 import {WEAPONS} from '../shared/weapons.js';
 
-test('all 23 guns and the knife have exactly one valid Factory New default',()=>{
+test('all 23 guns and the knife have exactly one valid painted or vanilla default',()=>{
   const specs=JSON.parse(fs.readFileSync(new URL('../scripts/weapon-assets/default-skins.json',import.meta.url),'utf8'));
   assert.equal(Object.keys(WEAPONS).length,24);
   assert.equal(Object.keys(DEFAULT_SKINS).length,24);
@@ -16,7 +16,7 @@ test('all 23 guns and the knife have exactly one valid Factory New default',()=>
     const skin=getSkin(DEFAULT_SKINS[weapon]),spec=specs.find(s=>s.weapon===weapon);
     assert.ok(spec,`Missing audited default specification for ${weapon}`);
     assert.equal(skin.weapon,weapon);assert.equal(skin.paintkit,spec.paintkit);
-    assert.equal(skin.condition,'Factory New');assert.equal(skin.wearMin,spec.wearMin);
+    assert.equal(skin.condition,skin.paintkit===0?'Vanilla':'Factory New');assert.equal(skin.wearMin,spec.wearMin);
     assert.ok(skin.wear>=spec.wearMin&&skin.wear<=spec.wearMax&&skin.wear<.07,`${skin.id} must support Factory New`);
   }
   assert.ok(SKINS.some(s=>!s.isDefault),'existing optional skin choices remain available');
@@ -42,7 +42,11 @@ test('catalog assets exist, are self-contained GLBs, and match advertised sizes/
     assert.ok(json.nodes.some(n=>n.name==='normalization'));assert.ok(json.skins.length);
     assert.ok(json.images.every(i=>i.bufferView!==undefined&&!i.uri));
     assert.ok(json.buffers.every(b=>!b.uri));
-    if(skin.isDefault){
+    if(skin.isDefault&&skin.paintkit===0){
+      assert.equal(skin.condition,'Vanilla');assert.equal(skin.wear,0);
+      assert.ok(json.materials.some(m=>m.extras?.vmat?.ShaderName==='csgo_weapon.vfx'));
+      assert.ok(json.materials.every(m=>!m.extras?.paintkit),`${skin.id}: vanilla has no applied paintkit`);
+    }else if(skin.isDefault){
       const paint=json.materials.find(m=>m.extras?.paintkit===skin.paintkit)?.extras;
       assert.ok(paint,`${skin.id}: rendered material carries the selected paintkit`);
       assert.equal(paint.wear,skin.wear,`${skin.id}: rendered wear agrees with the catalog`);

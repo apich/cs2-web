@@ -93,21 +93,24 @@ function configureMaterialForType(material, { renderType, depthBias }) {
 // Viewer pushes surface-attached geometry (overlay decals and window insets)
 // ~0.392 m outward; moving them back along the normal lays them flush without
 // touching their transparent/depthWrite state.
-function shiftAlongNormal(object, worldDistance) {
+export function shiftAlongNormal(object, worldDistance) {
   const pos = object.geometry?.attributes?.position;
   const norm = object.geometry?.attributes?.normal;
   if (!pos || !norm) return;
+  // Quantized glTF positions wrap at +/-1 when written back to Int16 storage.
+  // Decode through accessors (including interleaved buffers) into editable floats.
+  const shifted = new THREE.Float32BufferAttribute(new Float32Array(pos.count * 3), 3);
   const scale = object.getWorldScale(new THREE.Vector3()).x || 1.0;
   const localShift = worldDistance / scale;
   for (let i = 0; i < pos.count; i++) {
-    pos.setXYZ(
+    shifted.setXYZ(
       i,
       pos.getX(i) - norm.getX(i) * localShift,
       pos.getY(i) - norm.getY(i) * localShift,
       pos.getZ(i) - norm.getZ(i) * localShift
     );
   }
-  pos.needsUpdate = true;
+  object.geometry.setAttribute('position', shifted);
   object.geometry.computeBoundingBox();
   object.geometry.computeBoundingSphere();
 }

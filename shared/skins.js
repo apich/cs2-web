@@ -628,7 +628,7 @@ export const SKINS = Object.freeze([
       "model": "assets/weapons/optional/butterfly-animations.glb"
     },
     "animationFamily": "butterfly",
-    "condition": "Factory New",
+    "condition": "Vanilla",
     "wear": 0,
     "wearMin": 0,
     "paintkit": 0,

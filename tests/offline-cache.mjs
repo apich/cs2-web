@@ -85,6 +85,25 @@ test('corrupt, truncated, and SPA fallback responses never enter the asset cache
   assert.equal((await f.api.getAssetCacheStats()).count,0);
 });
 
+test('SHA verification rejects corrupt bytes when Web Crypto is absent or fails',async t=>{
+  const original=Object.getOwnPropertyDescriptor(globalThis,'crypto');
+  t.after(()=>Object.defineProperty(globalThis,'crypto',original));
+  for(const crypto of [undefined,{subtle:{digest:async()=>{throw Error('Unavailable');}}}]){
+    Object.defineProperty(globalThis,'crypto',{configurable:true,value:crypto});
+    const f=await fixture();f.files({});
+    f.routes.set('/dust2/assets/a.bin','bad');
+    await assert.rejects(f.api.fetchCachedAsset('assets/a.bin',{sha256:sha('new'),bytes:3}),/校验失败/);
+    assert.equal((await f.api.getAssetCacheStats()).count,0);
+    for(const size of [0,3,55,56,63,64,65,128]){
+      const data='x'.repeat(size),path=`assets/valid-${size}.bin`;
+      f.routes.set('/dust2/'+path,data);
+      const response=await f.api.fetchCachedAsset(path,{sha256:sha(data),bytes:size});
+      assert.equal(await response.text(),data);
+      assert.equal(response.headers.get('x-dust2-sha256'),sha(data));
+    }
+  }
+});
+
 test('supplied SHA replaces stale HTTP-cache version in the download URL',async()=>{
   const f=await fixture(),hash=sha('latest-skin');f.files({});
   f.routes.set('/dust2/assets/optional.glb',url=>new Response(url.searchParams.get('v')===hash.slice(0,12)?'latest-skin':'outdated'));
