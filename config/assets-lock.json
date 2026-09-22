@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "version": "6f958ddcde93a4f1",
+  "version": "8d0c74a0887247ae",
   "baseURL": "https://cs2.duskrain.cn/",
-  "baseManifestVersion": "c14e41201dcbe3f9",
-  "totalBytes": 452116803,
+  "baseManifestVersion": "88b6aabd4db371ce",
+  "totalBytes": 452134844,
   "files": [
     {
       "path": "assets/asset-manifest-mobile.json",
-      "bytes": 151149,
-      "sha256": "2974e62a660f63e6476843c5c1f862a7c565394b571d70a703a907cd97b605ed",
+      "bytes": 155496,
+      "sha256": "1cfe5a503331950cf37617685ad047bc53b783e41f06f2d40c75cbcac90f77be",
       "group": "metadata"
     },
     {
       "path": "assets/asset-manifest.json",
-      "bytes": 150250,
-      "sha256": "4b0c45c8afd214f6355bc55f0c84ae62c61fde54b5d1534ecd42d3dd0fb01f51",
+      "bytes": 154597,
+      "sha256": "aad4593e438f2748b4bcb893e24c99bfa01f5c060479b46434fb328f2db6b1a0",
       "group": "metadata"
     },
     {
@@ -517,8 +517,8 @@
     },
     {
       "path": "assets/audio/cs2/manifest.json",
-      "bytes": 136871,
-      "sha256": "a4d35f319ffabab90880aa55a3534e41dd0921aa4e3e5cc1d10750c609f1114f",
+      "bytes": 146226,
+      "sha256": "6227f0c7a9c92b526e365eafd824406a1c424af33324b324fcfd97985a200dcd",
       "group": "audio"
     },
     {

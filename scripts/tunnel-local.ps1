@@ -85,6 +85,8 @@ Push-Location -LiteralPath $projectRoot
 try {
     if (-not $NoBuild) {
         Write-Output 'Building the browser client...'
+        & $nodeExe (Join-Path $projectRoot 'scripts\build-asset-manifest.mjs')
+        if ($LASTEXITCODE -ne 0) { throw 'Asset manifest generation failed. The server was not started.' }
         & $nodeExe $viteFile build
         if ($LASTEXITCODE -ne 0) { throw 'The browser build failed. The server was not started.' }
     }
