@@ -816,7 +816,7 @@ export class GameRoom {
 
   dropBomb(p) {
     p.hasBomb = false;delete p.inventory.c4;if(p.weapon==='c4')this.selectSlot(p,Object.keys(p.inventory).some(id=>getWeapon(id).slot===1)?1:Object.keys(p.inventory).some(id=>getWeapon(id).slot===2)?2:3); this.bomb.state = 'dropped'; this.bomb.carrierId = null;
-    Object.assign(this.bomb, copyPoint(p), { actorId: null, action: null, progress: 0 });
+    Object.assign(this.bomb, this.droppedWeapons.throwState(p), { actorId: null, action: null, progress: 0 });
   }
 
   siteAt(p) { return Object.entries(MAP.sites || {}).find(([, site]) => lengthXZ(site, p) <= site.radius && Math.abs(site.y - p.y) < 3)?.[0] || null; }
@@ -837,6 +837,7 @@ export class GameRoom {
       else Object.assign(bomb, copyPoint(carrier));
     }
     if (bomb.state === 'dropped') {
+      this.droppedWeapons.advance(bomb,dt);
       const pickup = [...this.players.values()].find(p => p.alive && p.team === 'T' && now>=(p.bombPickupAfter||0) && dist(p, bomb) < 2.3 && clearSight(eye(p), { x: bomb.x, y: bomb.y + 0.4, z: bomb.z }));
       if (pickup) { pickup.hasBomb = true;this.giveWeapon(pickup,'c4'); bomb.carrierId = pickup.id; bomb.state = 'carried'; }
     }
@@ -1046,9 +1047,8 @@ export class GameRoom {
     if(canAct)this.grenades.tick(dt);
     this.droppedWeapons.tick(dt);this.pickupKits();
     this.recordPoses();
+    if(this.mode==='defuse'&&['freeze','live'].includes(this.round.phase))this.stepBomb(dt);
     if (this.mode === 'defuse' && this.round.phase === 'live') {
-      this.stepBomb(dt);
-      if (this.round.phase !== 'live') return;
       const livingT = [...this.players.values()].some(p => p.team === 'T' && p.alive), livingCT = [...this.players.values()].some(p => p.team === 'CT' && p.alive);
       if (!livingCT && this.count('CT')) this.endRound('T', 'CT 全部被击败');
       else if (!livingT && this.count('T') && this.bomb.state !== 'planted') this.endRound('CT', 'T 全部被击败');
