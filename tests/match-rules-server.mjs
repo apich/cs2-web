@@ -10,6 +10,7 @@ import {BOT_AIM,smoothBotAim,angleDifference} from '../server/bot-aim.js';
 import {GrenadeSimulation} from '../server/grenades.js';
 import {DroppedWeapons} from '../server/dropped-weapons.js';
 import {startGameServer} from '../server/index.js';
+import {DROP_PHYSICS} from '../shared/drop-physics.js';
 
 initPhysics([-200,0,-200,200,0,200,200,0,-200,-200,0,-200,-200,0,200,200,0,200]);
 const packet=(seq,extra={})=>({seq,forward:0,right:0,yaw:0,pitch:0,...extra});
@@ -129,6 +130,34 @@ test('dropped guns preserve skin/ammo, allow enemy guns, swap slots and stay bou
   const blocked=room.droppedWeapons.items[0];Object.assign(a,{x:blocked.x,y:blocked.y-.5,z:blocked.z});room.droppedWeapons.raycastWorld=()=>.01;assert.equal(room.pickupWeapon(a),false);
   for(let i=0;i<100;i++)room.droppedWeapons.drop(a,{weaponId:'ak47',skinId:skin,ammo:1,reserve:0});assert.equal(room.droppedWeapons.items.length,64);advance(120001);room.droppedWeapons.tick(0);assert.equal(room.droppedWeapons.items.length,0);
   const defuse=fixture('defuse');defuse.room.round.phase='live';defuse.room.bomb={state:'planted',x:defuse.a.x,y:defuse.a.y,z:defuse.a.z};defuse.room.droppedWeapons.drop(defuse.a,{weaponId:'ak47',skinId:skin,ammo:1,reserve:0});assert.equal(defuse.room.pickupWeapon(defuse.a),false);
+});
+
+test('manual gun and C4 drops launch forward in a visible arc',()=>{
+  const {room,b}=fixture('defuse');room.round.phase='live';room.droppedWeapons.raycastWorld=()=>null;
+  Object.assign(b,{x:1,y:2,z:3,yaw:0,pitch:0,vx:.5,vy:0,vz:0,grounded:true});room.selectSlot(b,1);
+  const gunResult=room.dropWeapon(b.id),gun=room.droppedWeapons.items.find(item=>item.id===gunResult.id),gunStart={...gun};
+  const wire=room.droppedWeapons.snapshot().find(item=>item.id===gun.id);assert.deepEqual([wire.vx,wire.vy,wire.vz],[gun.vx,gun.vy,gun.vz]);
+  room.droppedWeapons.tick(.25);assert.ok(gun.z<gunStart.z-.65);assert.ok(gun.y>gunStart.y);assert.ok(gun.vy>0);
+  room.droppedWeapons.tick(.1);assert.ok(gun.vy<0);
+  room.bomb.resting=true;Object.assign(b,{vx:0,vz:0});room.selectSlot(b,5);assert.equal(room.dropWeapon(b.id).weaponId,'c4');assert.equal(room.bomb.resting,false);const bombStart={...room.bomb};
+  room.stepBomb(.25);assert.equal(room.bomb.state,'dropped');assert.ok(room.bomb.z<bombStart.z-.45);assert.ok(room.bomb.y>bombStart.y);assert.ok(room.bomb.vy>0);
+  room.stepBomb(.1);assert.ok(room.bomb.vy<0);
+  for(let i=0;i<60;i++){room.droppedWeapons.tick(.05);room.stepBomb(.05);}
+  assert.ok(Math.hypot(gun.x-b.x,gun.z-b.z)<=DROP_PHYSICS.maxDistance+.0001);assert.ok(Math.hypot(room.bomb.x-b.x,room.bomb.z-b.z)<=DROP_PHYSICS.maxDistance+.0001);
+});
+
+test('a static C4 drop resets its landed state and keeps moving during freeze time',()=>{
+  const {room,b}=fixture('defuse');room.round.phase='freeze';room.droppedWeapons.raycastWorld=()=>null;
+  Object.assign(b,{x:1,y:2,z:3,yaw:0,vx:0,vy:0,vz:0,grounded:true});room.bomb.resting=true;room.selectSlot(b,5);
+  assert.equal(room.dropWeapon(b.id).weaponId,'c4');const start={...room.bomb};room.tick(.25);
+  assert.equal(room.bomb.resting,false);assert.ok(room.bomb.y>start.y);assert.ok(room.bomb.z<start.z-.45);
+});
+
+test('settled drops stop spending collision work',()=>{
+  let traces=0;const drops=new DroppedWeapons({raycastWorld:(origin,dir,max)=>{traces++;return dir.y<0&&origin.y>=0&&origin.y<=max?origin.y:null;}}),item=drops.drop({id:'p',x:0,y:0,z:0,yaw:0},{weaponId:'ak47'});
+  for(let i=0;i<240&&!item.resting;i++)drops.tick(1/60);
+  assert.equal(item.resting,true);assert.ok(Math.hypot(item.x,item.z)>1.5);assert.ok(Math.hypot(item.x,item.z)<=DROP_PHYSICS.maxDistance+.0001);assert.equal(item.vx,0);assert.equal(item.vy,0);assert.equal(item.vz,0);assert.ok(Math.abs(item.y-DROP_PHYSICS.radius)<.001);
+  traces=0;drops.tick(1/30);assert.equal(traces,0);
 });
 
 test('real sockets enforce owner-only bot changes and drop message bounds',{timeout:15000},async t=>{
