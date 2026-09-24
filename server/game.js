@@ -23,7 +23,7 @@ import {traceKnife,knifeDamage,knifeInterval} from '../shared/melee.js';
 
 export const TICK_RATE = 30;
 export const SNAPSHOT_RATE = 15;
-export const RULES = Object.freeze({ freezeSeconds: 6, roundSeconds: 115, endSeconds: 5, buySeconds: 25, plantSeconds: 3, defuseSeconds: 10, defuseKitSeconds: 5, bombSeconds: 40, respawnSeconds: 3, protectionSeconds: 2 });
+export const RULES = Object.freeze({ freezeSeconds: 6, roundSeconds: 115, endSeconds: 5, buySeconds: 25, plantSeconds: 3, defuseSeconds: 10, defuseKitSeconds: 5, bombSeconds: 40, bombBlastDamage: 500, bombBlastRadius: 12.7, respawnSeconds: 3, protectionSeconds: 2 });
 const MAX_PLAYERS = 10;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lengthXZ = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -564,6 +564,19 @@ export class GameRoom {
     }
   }
 
+  // CS2 的 C4 爆炸：半径内所有存活玩家（含安装者与队友）都受爆炸伤害，距离越远伤害越低。
+  explodeBomb() {
+    const bomb = this.bomb, attacker = this.players.get(bomb.planterId) || null;
+    const center = { x: bomb.x, y: bomb.y + 0.1, z: bomb.z };
+    for (const victim of this.players.values()) {
+      if (!victim.alive) continue;
+      const target = { x: victim.x, y: victim.y + 0.9, z: victim.z };
+      const distance = dist(center, target);
+      if (distance >= this.rules.bombBlastRadius || !clearSight(center, target)) continue;
+      this.damagePlayer(victim, attacker, this.rules.bombBlastDamage * Math.max(0, 1 - distance / this.rules.bombBlastRadius), 'bomb', false, 1);
+    }
+  }
+
   burnPlayers(fire,config){
     const attacker=this.players.get(fire.ownerId),now=this.clock();
     for(const p of this.players.values()){
@@ -842,7 +855,7 @@ export class GameRoom {
       if (pickup) { pickup.hasBomb = true;this.giveWeapon(pickup,'c4'); bomb.carrierId = pickup.id; bomb.state = 'carried'; }
     }
     if (bomb.state === 'planted' && now >= bomb.explodesAt) {
-      bomb.state = 'exploded'; this.emit('bomb_exploded', { x: bomb.x, y: bomb.y, z: bomb.z }); this.endRound('T', '炸弹爆炸'); return;
+      bomb.state = 'exploded'; this.emit('bomb_exploded', { x: bomb.x, y: bomb.y, z: bomb.z }); this.explodeBomb(); this.endRound('T', '炸弹爆炸'); return;
     }
     let actor = null, action = null, site = null;
     if (bomb.state === 'carried') {

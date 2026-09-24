@@ -24,6 +24,8 @@ const clockText = seconds => {
   return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
 };
 
+const killWeaponName = id => ({ bomb: 'C4 爆炸', world: '环境伤害' })[id] || (EQUIPMENT[id] || getWeapon(id)).name;
+
 export class HUD {
   constructor() {
     this.elements = Object.fromEntries([
@@ -300,7 +302,7 @@ export class HUD {
       const killerLabel = document.createElement('span');
       killerLabel.textContent = killer?.name || event.killerName || (event.killerId ? '玩家' : '环境');
       killerLabel.style.color = TEAM_COLORS[killer?.team] || '#d2d8cc';
-      const weaponLabel = uiIcon(event.weapon,event.weapon==='world'?'环境伤害':(EQUIPMENT[event.weapon]||getWeapon(event.weapon)).name,'kill-weapon-icon');
+      const weaponLabel = uiIcon(event.weapon==='bomb'?'c4':event.weapon,killWeaponName(event.weapon),'kill-weapon-icon');
       const victimLabel = document.createElement('span');
       victimLabel.textContent = victim?.name || event.victimName || '玩家'; victimLabel.style.color = TEAM_COLORS[victim?.team] || '#d2d8cc';
       node.append(killerLabel);
@@ -360,10 +362,9 @@ export class HUD {
     const time = now();
     this.combo = snapshot?.mode==='defuse'?event.killerRoundKills:event.killerLifeKills;
     this.lastKillAt = time;
-    const weapon = EQUIPMENT[event.weapon]||getWeapon(event.weapon);
     this.text('kill-title', event.headshot ? '爆头击杀' : this.combo > 1 ? `${this.combo} 连杀` : '击杀确认');
     this.text('kill-victim', victim?.name || event.victimName || '对手');
-    this.text('kill-weapon', weapon.name);
+    this.text('kill-weapon', killWeaponName(event.weapon));
     this.text('kill-combo', this.combo > 1 ? `×${this.combo}` : '');
     const element = this.elements['kill-confirm'];
     if (!element) return;

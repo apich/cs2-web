@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {BoxGeometry} from 'three';
 import {GameRoom,applyArmorDamage} from '../server/game.js';
 import {initPhysics} from '../shared/physics.js';
 import {getWeapon} from '../shared/weapons.js';
 import {traceBullet} from '../server/bullet-penetration.js';
+import {MAP} from '../shared/map-data.js';
+
+const box=(x,y,z,w,h,d)=>{const g=new BoxGeometry(w,h,d).toNonIndexed();g.translate(x,y,z);const a=[...g.attributes.position.array];g.dispose();return a;};
 
 initPhysics([-200,0,-200,200,0,200,200,0,-200,-200,0,-200,-200,0,200,200,0,200]);
 const packet=(seq,extra={})=>({seq,forward:0,right:0,yaw:0,pitch:0,...extra});
@@ -89,4 +93,44 @@ test('freeze allows dropping and a single E pickup while movement, fire and bomb
  assert.equal(room.bomb.action,null);assert.equal(room.events.filter(e=>e.type==='weapon_picked_up').length,1);
  room.receiveInput(a.id,packet(2,{interact:true}));room.tick();assert.equal(room.events.filter(e=>e.type==='weapon_picked_up').length,1);
  room.round.phase='waiting';assert.equal(room.dropWeapon(a.id).ok,false);
+});
+
+test('C4 explosion deals CS2 blast damage to everyone inside its radius, falls off with distance and credits only enemy kills',()=>{
+ const {room,c:teammate}=fixture('defuse');
+ const planter=[...room.players.values()].find(p=>p.hasBomb);
+ const near=room.addHuman({}, {name:'near',team:'CT'}),mid=room.addHuman({}, {name:'mid',team:'CT'}),far=room.addHuman({}, {name:'far',team:'CT'});
+ room.round.phase='live';
+ const site=MAP.sites.A;
+ Object.assign(planter,{...site,grounded:true,vx:0,vz:0,effectiveInput:{interact:true}});
+ room.stepBomb(3);assert.equal(room.bomb.state,'planted');
+ planter.effectiveInput.interact=false;
+ Object.assign(near,{x:site.x+1,y:site.y,z:site.z,grounded:true});
+ Object.assign(mid,{x:site.x+11,y:site.y,z:site.z,grounded:true});
+ Object.assign(far,{x:site.x+40,y:site.y,z:site.z,grounded:true});
+ Object.assign(teammate,{x:site.x+2,y:site.y,z:site.z,grounded:true});
+ room.bomb.explodesAt=100000;room.stepBomb(0);
+ assert.equal(room.bomb.state,'exploded');assert.equal(room.round.winner,'T');
+ assert.equal(near.alive,false,'a point blank blast is lethal');
+ assert.equal(planter.alive,false,'the planter standing next to the bomb dies too');
+ assert.equal(teammate.alive,false,'a teammate standing next to the bomb dies too');
+ assert.equal(mid.alive,true,'damage falls off with distance');
+ assert.ok(mid.health>0&&mid.health<100,`partial damage expected, got ${mid.health}`);
+ assert.equal(far.alive,true);assert.equal(far.health,100,'outside the blast radius nothing happens');
+ const kills=room.events.filter(e=>e.type==='kill');
+ assert.equal(kills.length,3);assert.ok(kills.every(e=>e.weapon==='bomb'));
+ assert.equal(planter.kills,1,'only the enemy kill is credited');
+ assert.ok(planter.money>3250,'the planter is credited with the blast kill');
+});
+
+test('C4 blast damage never crosses world geometry',()=>{
+ initPhysics([...box(0,-.5,0,400,1,400),...box(6,2,0,.2,4,20)]);
+ const {room}=fixture('defuse');
+ const planter=[...room.players.values()].find(p=>p.hasBomb);
+ const exposed=room.addHuman({}, {name:'exposed',team:'CT'}),sheltered=room.addHuman({}, {name:'sheltered',team:'CT'});
+ Object.assign(room.bomb,{state:'planted',x:0,y:0,z:0,planterId:planter.id});
+ Object.assign(exposed,{x:2,y:0,z:0,grounded:true});
+ Object.assign(sheltered,{x:8,y:0,z:0,grounded:true});
+ room.explodeBomb();
+ assert.equal(exposed.alive,false);
+ assert.equal(sheltered.alive,true);assert.equal(sheltered.health,100);
 });
