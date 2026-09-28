@@ -18,9 +18,11 @@ def main():
     parser.add_argument("output", type=pathlib.Path)
     parser.add_argument("--max-size", type=int, default=1024)
     parser.add_argument("--aux-size", type=int, default=512)
+    parser.add_argument("--map-id", default=None, help="Output name prefix; defaults to the input file stem")
     args = parser.parse_args()
     src = args.input.resolve()
     dst = args.output.resolve()
+    map_id = args.map_id or src.stem
     dst.mkdir(parents=True, exist_ok=True)
     texture_dir = dst / "textures"
     texture_dir.mkdir(exist_ok=True)
@@ -109,15 +111,15 @@ def main():
         source = (src.parent / buffer["uri"]).resolve()
         if not source.is_relative_to(src.parent):
             raise ValueError("Buffer escapes export directory")
-        name = f"dust2-{index}.bin"
+        name = f"{map_id}-{index}.bin"
         shutil.copy2(source, dst / name)
         buffer["uri"] = name
     gltf.setdefault("asset", {}).setdefault("extras", {})["browserPackaging"] = {
-        "source": "User's installed Counter-Strike 2 de_dust2.vpk, SHA256 51d6bb432b6553bfae6c38219a527c5de2464a2b107080f2b8be7d8427ebb885, extracted with Source 2 Viewer 20.0",
+        "source": f"User's installed Counter-Strike 2 {map_id}.vpk, extracted with Source 2 Viewer 20.0",
         "textureProcessing": "Original texture content and UV assignments retained; WebP browser compression; albedo at most 1024 px, signage at most 2048 px, normal/ORM maps at most 512 px.",
         "coordinateSystem": "S2V meters, Y up; apply +90 degrees about Y to align with the shared gameplay map.",
     }
-    (dst / "dust2.gltf").write_text(json.dumps(gltf, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    (dst / f"{map_id}.gltf").write_text(json.dumps(gltf, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     summary = {"source": str(src), "images": len(images), "materials": len(gltf.get("materials", [])), "omittedEditorPrimitives": removed_primitives,
                "meshes": len(gltf.get("meshes", [])), "nodes": len(gltf.get("nodes", [])),
                "originalTextureBytes": sum(i["sourceBytes"] for i in report),

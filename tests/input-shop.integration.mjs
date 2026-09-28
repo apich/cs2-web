@@ -4,7 +4,8 @@ import { once } from 'node:events';
 import { WebSocket } from 'ws';
 import { startGameServer } from '../server/index.js';
 import { GameRoom, sanitizeInput } from '../server/game.js';
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
+const MAP = getMap(DEFAULT_MAP);
 import { createPlayerState, stepPlayer, raycastWorld } from '../shared/physics.js';
 import { getWeapon } from '../shared/weapons.js';
 

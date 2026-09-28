@@ -1,7 +1,8 @@
 /** Disposable local QA fixture. Control port is loopback-only, never deployed. */
 import { createServer } from 'node:http';
 import { startGameServer } from '../server/index.js';
-import {MAP} from '../shared/map-data.js';
+import {getMap,DEFAULT_MAP} from '../shared/maps/registry.js';
+const MAP=getMap(DEFAULT_MAP);
 import {raycastWorld,floorHeight} from '../shared/physics.js';
 import {eyePosition} from '../shared/aim.js';
 import {getWeapon} from '../shared/weapons.js';

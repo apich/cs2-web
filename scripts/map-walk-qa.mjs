@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import {MAP} from '../shared/map-data.js';
+import {getMap,DEFAULT_MAP} from '../shared/maps/registry.js';
+const MAP=getMap(DEFAULT_MAP);
 import {initPhysics,createPlayerState,stepPlayer,raycastWorld} from '../shared/physics.js';
 
 const bytes=fs.readFileSync(new URL('../public/assets/map/positions.f32',import.meta.url));

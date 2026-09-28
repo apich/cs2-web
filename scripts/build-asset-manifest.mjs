@@ -1,6 +1,7 @@
 import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { listMaps } from '../shared/maps/registry.js';
 
 const root = path.resolve('public');
 const files = new Set();
@@ -26,9 +27,24 @@ async function walk(dir, group) {
   }
 }
 let entries = [];
-await add('assets/map-cs2/dust2-web.gltf', 'map');
-await add('assets/map/positions.f32', 'collision');
-await add('assets/map/penetration-materials.u8', 'collision');
+// Every registered map contributes its render, collision and penetration files.
+// Dust II keeps its historical single-map layout; newer maps live per map id.
+for (const map of listMaps()) {
+  const legacy = map.id === 'de_dust2';
+  const assets = map.assets;
+  if (legacy) {
+    await add(assets.renderDesktop.replace(/^\//, ''), 'map');
+    await add(assets.geometryUrl.replace(/^\//, ''), 'collision');
+    await add(assets.penetrationUrl.replace(/^\//, ''), 'collision');
+  } else {
+    const dir = `assets/maps/${map.id}`;
+    await add(`${dir}/render/${map.id}-web.gltf`, 'map');
+    await add(`${dir}/mobile/${map.id}-mobile.gltf`, 'map');
+    await add(assets.geometryUrl.replace(/^\//, ''), 'collision');
+    await add(assets.penetrationUrl.replace(/^\//, ''), 'collision');
+  }
+  if (map.overview?.image) await add(map.overview.image.replace(/^\//, ''), 'map');
+}
 await add('assets/sky/daylight.hdr','sky');
 await add('assets/sky/source.json','sky');
 await walk('assets/audio', 'audio');
@@ -51,6 +67,12 @@ async function writeManifest(name){
  console.log(`${name} ${version}: ${entries.length} files, ${(manifest.totalBytes/1048576).toFixed(1)} MiB`);
 }
 await writeManifest('asset-manifest.json');
+// Mobile swaps every map's desktop render for its 256 px texture tier, and keeps
+// the shared collision data (group 'collision') for both.
 entries=entries.filter(entry=>entry.group!=='map');files.clear();entries.forEach(entry=>files.add(entry.path));
 await add('assets/map-mobile/dust2-mobile.gltf','map');
+for(const map of listMaps()){
+  if(map.id==='de_dust2')continue;
+  await add(`assets/maps/${map.id}/mobile/${map.id}-mobile.gltf`,'map');
+}
 await writeManifest('asset-manifest-mobile.json');

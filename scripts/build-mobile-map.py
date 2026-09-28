@@ -1,4 +1,5 @@
 """Package original map textures for phones, keeping geometry, UVs and alpha."""
+import os
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
@@ -6,8 +7,8 @@ import json
 from PIL import Image
 
 root = Path(__file__).resolve().parents[1] / 'public/assets'
-source = root / 'map-cs2/dust2-web.gltf'
-target = root / 'map-mobile'
+source = root / os.environ.get('MAP_SOURCE', 'map-cs2/dust2-web.gltf')
+target = root / os.environ.get('MAP_TARGET', 'map-mobile')
 (target / 'textures').mkdir(parents=True, exist_ok=True)
 gltf = json.loads(source.read_text(encoding='utf-8'))
 
@@ -25,10 +26,13 @@ def convert(entry):
 with ThreadPoolExecutor(max_workers=4) as pool:
     converted = list(pool.map(convert, gltf['images']))
 gltf['images'] = [item[0] for item in converted]
+# The mobile tier reuses the desktop geometry buffer instead of duplicating it.
+# Rewrite the relative path toward wherever that buffer actually lives.
+render_dir = source.parent
 for buffer in gltf['buffers']:
     if 'uri' in buffer:
-        buffer['uri'] = '../map-cs2/' + buffer['uri']
-(target / 'dust2-mobile.gltf').write_text(json.dumps(gltf, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+        buffer['uri'] = os.path.relpath(render_dir, target).replace(os.sep, '/') + '/' + buffer['uri']
+(target / os.environ.get('MAP_GLTF', 'dust2-mobile.gltf')).write_text(json.dumps(gltf, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
 report = {'profile': 'mobile-256', 'images': len(converted),
           'sourceRgbaMiB': round(sum(item[1] for item in converted) / 1048576, 1),
           'mobileRgbaMiB': round(sum(item[2] for item in converted) / 1048576, 1),

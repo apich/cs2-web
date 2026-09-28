@@ -7,8 +7,13 @@ WebSocket at `/ws`. Time values are Unix milliseconds unless a field ends in `Se
 Client sends `join` once before other actions:
 
 ```json
-{"type":"join","name":"Player","room":"AB12CD","team":"auto","mode":"deathmatch","bots":6}
+{"type":"join","name":"Player","room":"AB12CD","team":"auto","mode":"deathmatch","bots":6,"maps":["de_dust2","de_mirage"]}
 ```
+
+`maps` is the player's map *pool*, not a map order: the server draws one id from it
+uniformly when it creates the room, and re-draws on a rematch. A pool of one is
+that map every time. Unknown ids are dropped; a pool left empty falls back to
+`de_dust2`. Omitting `maps` means every registered map, as before.
 
 An empty room creates a new room; a supplied existing code joins that room, whose
 mode is authoritative. A supplied unused code creates it. Room codes are uppercase
@@ -17,8 +22,11 @@ and `defuse`. Maximum players including bots: 10, maximum humans per team: 5.
 Bots yield their slots to humans. Match settings are set by the room's creator.
 
 ```json
-{"type":"welcome","id":"p_...","room":"AB12CD","mode":"deathmatch","team":"T","tickRate":30,"snapshotRate":15,"serverTime":0,"protocol":1}
+{"type":"welcome","id":"p_...","room":"AB12CD","mode":"deathmatch","team":"T","map":"de_mirage","maps":["de_dust2","de_mirage"],"tickRate":30,"snapshotRate":15,"serverTime":0,"protocol":1}
 ```
+
+`map` is the map this room actually runs and the client must load; `maps` is the
+pool it was drawn from, so the client can show what the room could have been.
 
 Input is sent at 30 Hz, with a monotonically increasing nonnegative integer seq:
 
@@ -39,13 +47,22 @@ money, the buy period and proximity to the team's spawn. An armor purchase is
 Snapshots arrive at 15 Hz:
 
 ```json
-{"type":"snapshot","time":0,"room":"AB12CD","mode":"deathmatch","players":[],"round":{},"bomb":{},"scores":{"T":0,"CT":0},"events":[]}
+{"type":"snapshot","time":0,"room":"AB12CD","mode":"deathmatch","map":"de_mirage","maps":["de_dust2","de_mirage"],"players":[],"round":{},"bomb":{},"scores":{"T":0,"CT":0},"events":[]}
 ```
 
 Each player: id, name, team, bot, x/y/z, vx/vy/vz, yaw/pitch, crouch, grounded,
-health, armor, alive, weapon, slot, ammo, reserve, reloadRemaining, money,
-kills, deaths, assists, seq (last processed input), inventory (weapon IDs),
-hasBomb, spawnProtectionRemaining, respawnIn, lastShotTime.
+onLadder, health, armor, alive, weapon, slot, ammo, reserve, reloadRemaining,
+money, kills, deaths, assists, seq (last processed input), inventory (weapon
+IDs), hasBomb, spawnProtectionRemaining, respawnIn, lastShotTime.
+
+`onLadder` is true while the player is climbing a ladder volume. Climbing is a
+server-owned state reached by walking into the volume while looking at it: the
+climb rate is the sign of the pitch (look up to climb, level to hold, look down
+to descend), horizontal position is frozen, and jumping pushes off. Maps without
+ladder volumes (Dust II) never set it.
+
+The server replies `{"type":"error","code":"MAP_UNAVAILABLE","message":"..."}` to a
+join naming a map whose collision world is not resident.
 
 Round: number, phase (`waiting`, `freeze`, `live`, `ended`), phaseEndsAt,
 timeLeft, buyEndsAt, winner (null or team), reason. Deathmatch is continuously live.

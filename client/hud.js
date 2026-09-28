@@ -1,4 +1,4 @@
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
 import { UTILITY_IDS, EQUIPMENT } from '../shared/equipment.js';
 import { getWeapon } from '../shared/weapons.js';
 import { getSkin, DEFAULT_SKINS } from '../shared/skins.js';
@@ -10,10 +10,8 @@ import {KillCards} from './kill-cards.js';
 import './kill-cards.css';
 
 const TEAM_COLORS = { CT: '#6f9ce6', T: '#eabe54' };
-const LOCATION_NAMES = {
-  'T SPAWN': 'T 出生点', 'CT SPAWN': 'CT 出生点', A: 'A 包点', B: 'B 包点',
-  MID: '中路', 'LONG A': 'A 大道', TUNNELS: 'B 洞', CATWALK: 'A 小道',
-};
+/** Radar/location labels are per map; unknown labels fall back to their raw text. */
+const locationName=(map,text)=>map.locationNames?.[text]||text;
 const now = () => performance.now();
 const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, number(value)));
@@ -58,8 +56,19 @@ export class HUD {
       this.radarReady = true;
       if (this.lastSnapshot && this.lastSelf) this.drawRadar(this.lastSnapshot, this.lastSelf, now());
     };
+    this.setMap(DEFAULT_MAP);
+  }
+
+  /**
+   * Bind the HUD to a map. Called on welcome, and again if a rematch changes the
+   * room's map, because the radar image, projection and callouts are all per map.
+   */
+  setMap(mapId) {
+    const map = getMap(mapId);
+    if (this.mapId === map.id && this.radarReady) return;
+    this.mapId = map.id; this.map = map; this.radarReady = false;
     // Keep nested deployments such as /dust2/ on their own asset path.
-    const radarPath = String(MAP.overview?.image || 'assets/valve-dust2/de_dust2_radar_psd.png').replace(/^\/+/, '');
+    const radarPath = String(map.overview?.image || 'assets/valve-dust2/de_dust2_radar_psd.png').replace(/^\/+/, '');
     this.radarImage.src = new URL(radarPath, document.baseURI).href;
   }
 
@@ -122,11 +131,11 @@ export class HUD {
       protection > 0 && self.alive ? `重生保护 ${protection.toFixed(1)} s` :
         self.hasBomb ? '携带 C4 · 前往 A / B 包点' : weapon.slot === 4 ? '左键投掷 · 4 切换投掷物' : [3,5].includes(weapon.slot) ? '左键轻击 · 右键重击 · B 购买' : 'R 换弹 · B 购买');
 
-    const closest = (MAP.labels || []).reduce((best, label) => {
+    const closest = (this.map?.labels || []).reduce((best, label) => {
       const gap = distanceXZ(self, label);
       return !best || gap < best.gap ? { label, gap } : best;
     }, null)?.label;
-    this.text('location', closest ? LOCATION_NAMES[closest.text] || closest.text : MAP.name || 'Dust II');
+    this.text('location', closest ? locationName(this.map, closest.text) : this.map?.name || '');
 
     const roundLeft = Math.max(0, number(round.timeLeft) - elapsed);
     const bombLeft = Math.max(0, number(bomb.remaining) - elapsed);
@@ -157,7 +166,7 @@ export class HUD {
 
     this.updateInteraction(snapshot, self);
     const buyLeft = Math.max(0, (number(round.buyEndsAt) - number(snapshot.time)) / 1000 - elapsed);
-    const inBuyZone = (MAP.spawns?.[self.team] || []).some(spawn => distanceXZ(self, spawn) < 9 && Math.abs(number(self.y) - number(spawn.y)) < 3);
+    const inBuyZone = (this.map?.spawns?.[self.team] || []).some(spawn => distanceXZ(self, spawn) < 9 && Math.abs(number(self.y) - number(spawn.y)) < 3);
     this.text('buy-note', mode === 'deathmatch' ? '死斗模式可免费更换武器与补充护甲。' :
       !self.alive ? '阵亡后无法购买，等待下一回合。' : buyLeft <= 0 ? '本回合购买时间已结束。' :
         !inBuyZone ? `请返回己方出生区购买 · 剩余 ${Math.ceil(buyLeft)} 秒` : `购买时间剩余 ${Math.ceil(buyLeft)} 秒 · 当前 $${number(self.money)}`);
@@ -172,7 +181,7 @@ export class HUD {
     const bomb = snapshot.bomb || {};
     let text = '', progress = 0, showTrack = false;
     if (self.alive && snapshot.mode === 'defuse' && snapshot.round?.phase === 'live') {
-      const site = Object.entries(MAP.sites || {}).find(([, point]) => distanceXZ(self, point) <= number(point.radius, 6) && Math.abs(number(self.y) - number(point.y)) < 3)?.[0];
+      const site = Object.entries(this.map?.sites || {}).find(([, point]) => distanceXZ(self, point) <= number(point.radius, 6) && Math.abs(number(self.y) - number(point.y)) < 3)?.[0];
       if (bomb.actorId === self.id && bomb.action) {
         text = bomb.action === 'plant' ? `正在安装 · ${site || bomb.site || ''} 区 · 保持按住左键 / E` : '正在拆除炸弹 · 保持按住 E';
         progress = clamp(bomb.progress, 0, 1); showTrack = true;
@@ -225,8 +234,8 @@ export class HUD {
   }
 
   radarPoint(position) {
-    const overview = MAP.overview || {};
-    const units = number(MAP.metersPerSourceUnit, 0.0254) || 0.0254;
+    const overview = this.map?.overview || {};
+    const units = number(this.map?.metersPerSourceUnit, 0.0254) || 0.0254;
     const scale = number(overview.scale, 4.4) || 4.4;
     const size = number(overview.size, 1024) || 1024;
     return {

@@ -9,23 +9,67 @@ import { PRIMARY_WEAPONS } from '../shared/weapons.js';
 import { normalizeSkinLoadout } from '../shared/skins.js';
 import { normalizeAgentLoadout } from '../shared/agents.js';
 import { botCount } from '../shared/match-rules.js';
-import { initPhysics } from '../shared/physics.js';
+import { initPhysics, hasWorld, activateWorld } from '../shared/physics.js';
+import { getMap, DEFAULT_MAP, resolveMapId, normalizeMapPool, mapIds } from '../shared/maps/registry.js';
 import { GameRoom, TICK_RATE, SNAPSHOT_RATE } from './game.js';
 import {ServerPerformance} from './performance-metrics.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TYPES = { '.webmanifest': 'application/manifest+json; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.wasm': 'application/wasm', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
-let physicsReady = null;
+const PUBLIC_ROOT = path.join(ROOT, 'public');
 
-async function loadPhysics() {
-  if (!physicsReady) physicsReady = readFile(path.join(ROOT, 'public/assets/map/collision.json'), 'utf8').then(async source => {
-    const { positions } = JSON.parse(source);
-    if (!Array.isArray(positions) || positions.length < 9 || positions.length % 9) throw new Error('Invalid Dust2 collision geometry');
-    const materials=await readFile(path.join(ROOT,'public/assets/map/penetration-materials.u8'));
-    if(materials.length!==positions.length/9)throw new Error('Invalid Dust2 penetration material count');
-    return initPhysics(positions,new Uint8Array(materials));
-  }).catch(error => { physicsReady = null; throw error; });
-  return physicsReady;
+// One collision world per map, built lazily so a server only pays for the maps
+// its rooms actually use. The default map still loads eagerly to fail fast on a
+// broken install.
+const mapWorlds = new Map();
+
+/** Resolve an asset URL from a map descriptor to a file inside public/. */
+function assetFilePath(url) {
+  const relative = String(url || '').replace(/^[/\\]+/, '').split('?')[0];
+  const resolved = path.resolve(PUBLIC_ROOT, relative);
+  if (resolved !== PUBLIC_ROOT && !resolved.startsWith(PUBLIC_ROOT + path.sep)) {
+    throw new Error(`Asset path escapes public/: ${url}`);
+  }
+  return resolved;
+}
+
+async function loadMapWorld(mapId) {
+  const id = resolveMapId(mapId);
+  if (!mapWorlds.has(id)) {
+    const map = getMap(id);
+    const geometryFile = assetFilePath(map.assets.geometryUrl);
+    const penetrationFile = assetFilePath(map.assets.penetrationUrl);
+    mapWorlds.set(id, (async () => {
+      const [geometry, materials] = await Promise.all([readFile(geometryFile), readFile(penetrationFile)]);
+      // Binary triangle soup: 3 float32 per vertex, 9 vertices per triangle. The
+      // same bytes the browser reads, so both peers build identical geometry.
+      if (geometry.byteLength < 36 || geometry.byteLength % 12) throw new Error(`Invalid collision geometry for ${id}`);
+      const positions = new Float32Array(geometry.buffer, geometry.byteOffset, geometry.byteLength / 4);
+      if (materials.length !== positions.length / 9) throw new Error(`Invalid penetration material count for ${id}`);
+      return initPhysics(positions, new Uint8Array(materials), id, map.ladders, map.groundPatches);
+    })().catch(error => { mapWorlds.delete(id); throw error; }));
+  }
+  const world = await mapWorlds.get(id);
+  activateWorld(id);
+  return world;
+}
+
+/** Ensure a map's world is resident and active. Used when a room binds to it. */
+async function ensureMapWorld(mapId) {
+  const id = resolveMapId(mapId);
+  if (hasWorld(id)) { activateWorld(id); return getMap(id); }
+  await loadMapWorld(id);
+  return getMap(id);
+}
+
+/** Uniform map pick. Kept separate and pure so tests can inject an rng.
+ * The player chooses a *pool*; which map they actually get is the server's call. */
+function pickMapId(pool, rng = randomBytes) {
+  const list = normalizeMapPool(pool);
+  if (list.length === 1) return list[0];
+  const bytes = rng(4);
+  const value = bytes.readUInt32BE(0);
+  return list[value % list.length];
 }
 
 function send(socket, value) {
@@ -46,12 +90,21 @@ function joinSettings(msg) {
   if(msg.bots!==undefined&&(!Number.isInteger(msg.bots)||msg.bots<0||msg.bots>9))return {error:'机器人数量必须为 0–9 的整数。'};
   const bots = botCount(msg.bots);
   const primary = PRIMARY_WEAPONS.includes(msg.primary) ? msg.primary : 'auto';
-  return { name, room, mode, team, bots, primary, skins:normalizeSkinLoadout(msg.skins),agents:normalizeAgentLoadout(msg.agents),movementProtocol:msg.movementProtocol===1?1:0 };
+  // The player picks a pool of maps, never a specific one; normalizeMapPool
+  // drops unknown ids and always yields at least one playable map.
+  const maps = normalizeMapPool(msg.maps);
+  return { name, room, mode, team, bots, primary, maps, skins:normalizeSkinLoadout(msg.skins),agents:normalizeAgentLoadout(msg.agents),movementProtocol:msg.movementProtocol===1?1:0 };
 }
 
 /** Start the authoritative server after loading collision geometry. No external services. */
 export async function startGameServer({ port = Number(process.env.PORT || 3000), host = process.env.HOST || '0.0.0.0', staticDir = path.join(ROOT, 'dist'), rules = {} } = {}) {
-  await loadPhysics();
+  // Warm every registered map up front: a room needs its collision world present
+  // synchronously when it is created, and the join handler cannot await. Worlds
+  // are still per-map, so the cost is paid once per server process.
+  await Promise.all(mapIds().map(id => loadMapWorld(id).catch(error => {
+    console.error(`Map world failed to load (${id}):`, error.message);
+  })));
+  await loadMapWorld(DEFAULT_MAP);
   const rooms = new Map();
   const maxRooms = Math.max(1, Math.min(100, Number(process.env.MAX_ROOMS) || 12));
   const startedAt = Date.now();
@@ -117,11 +170,16 @@ export async function startGameServer({ port = Number(process.env.PORT || 3000),
         if(msg.existing===true&&!room){error(socket,'ROOM_GONE','房间已经关闭，请在大厅选择有玩家的房间。');return;}
         if (!room) {
           if (rooms.size >= maxRooms) { error(socket, 'SERVER_FULL', '服务器当前房间数量已达上限。'); return; }
-          room = new GameRoom(settings.room, { mode: settings.mode, bots: settings.bots, rules }); rooms.set(settings.room, room); created = true;
+          // The room draws its map from the player's pool, then keeps it for its
+          // whole life so everyone loads the same scene.
+          const mapId = pickMapId(settings.maps);
+          if (!hasWorld(mapId)) { error(socket, 'MAP_UNAVAILABLE', `地图 ${getMap(mapId).name} 资源尚未就绪，请稍后重试。`); return; }
+          room = new GameRoom(settings.room, { mode: settings.mode, bots: settings.bots, rules, mapId });
+          room.mapPool = settings.maps; rooms.set(settings.room, room); created = true;
         }
         try {
           const player = room.addHuman(socket, settings); socket.playerId = player.id; socket.roomCode = room.code;
-          send(socket, { type: 'welcome', id: player.id, room: room.code, mode: room.mode, team: player.team,teamId:player.teamId,hostId:room.hostId,desiredBots:room.desiredBots,botCount:room.botCount,match:room.matchSnapshot(), tickRate: TICK_RATE, snapshotRate: SNAPSHOT_RATE, serverTime: now, protocol: 1, movementProtocol:1 });
+          send(socket, { type: 'welcome', id: player.id, room: room.code, mode: room.mode, map: room.mapId, maps: room.mapPool||[room.mapId], team: player.team,teamId:player.teamId,hostId:room.hostId,desiredBots:room.desiredBots,botCount:room.botCount,match:room.matchSnapshot(), tickRate: TICK_RATE, snapshotRate: SNAPSHOT_RATE, serverTime: now, protocol: 1, movementProtocol:1 });
           send(socket, room.snapshot({ drainEvents: false }));
         } catch (e) { if (created) rooms.delete(room.code); error(socket, 'JOIN_FAILED', e.message); }
         return;

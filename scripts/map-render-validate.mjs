@@ -1,13 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
 import { initPhysics, floorHeight } from '../shared/physics.js';
 
 // Geometry-only independent audit: texture decoding is checked in the browser.
-const file=path.resolve(process.argv[2]||'public/assets/map-cs2/dust2.gltf');
+const mapId=process.argv[3]||DEFAULT_MAP;
+const file=path.resolve(process.argv[2]||getMap(mapId).assets.renderDesktop.replace(/^\//,''));
+const MAP=getMap(mapId);
 const json=JSON.parse(fs.readFileSync(file,'utf8'));
 const sourceStats={materials:json.materials?.length||0,images:json.images?.length||0,meshes:json.meshes?.length||0,nodes:json.nodes?.length||0};
 const hiddenMaterialNames=new Set((json.materials||[]).filter(m=>m.extras?.vmat?.IntParams?.F_DEPTH_FEATHER).map(m=>m.name));
@@ -24,7 +27,7 @@ const box=new THREE.Box3().setFromObject(group);
 let meshInstances=0,triangleInstances=0,uvMeshes=0;
 const visibleMeshes=[];
 group.traverse(o=>{if(o.isMesh){meshInstances++;triangleInstances+=(o.geometry.index?.count||o.geometry.attributes.position.count)/3;uvMeshes+=Boolean(o.geometry.attributes.uv);if(!hiddenMaterialNames.has(o.material.name))visibleMeshes.push(o);}});
-const physicsBytes=fs.readFileSync(new URL('../public/assets/map/positions.f32',import.meta.url));
+const physicsBytes=fs.readFileSync(new URL('../public/'+MAP.assets.geometryUrl.replace(/^\//,''),import.meta.url));
 initPhysics(new Float32Array(physicsBytes.buffer,physicsBytes.byteOffset,physicsBytes.byteLength/4));
 const ray=new THREE.Raycaster(),direction=new THREE.Vector3(0,-1,0);
 const locations=[...MAP.spawns.T.map((p,i)=>({name:`T${i}`,p})),...MAP.spawns.CT.map((p,i)=>({name:`CT${i}`,p})),...Object.entries(MAP.sites).map(([name,p])=>({name,p}))];
@@ -44,5 +47,6 @@ if(process.env.MAP_PROBE){
   ray.setFromCamera(new THREE.Vector2(-.334,-.054),camera);
   report.canopyProbe=ray.intersectObjects(visibleMeshes,false).slice(0,3).map(hit=>({mesh:hit.object.name,material:hit.object.material.name,p:hit.point.toArray()}));
 }
-fs.writeFileSync(new URL('../public/assets/map/render-validation.json',import.meta.url),JSON.stringify(report,null,2));
+fs.mkdirSync(path.dirname(fileURLToPath(new URL('../public/assets/maps/'+mapId+'/',import.meta.url))),{recursive:true});
+fs.writeFileSync(new URL(`../public/assets/maps/${mapId}/render-validation.json`,import.meta.url),JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));

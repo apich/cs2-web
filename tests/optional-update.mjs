@@ -6,7 +6,8 @@ import {viewportSize} from '../shared/video-settings.js';
 import {GameRoom} from '../server/game.js';
 import {initPhysics,createPlayerState} from '../shared/physics.js';
 import {MovementStream} from '../shared/movement-commands.js';
-import {MAP} from '../shared/map-data.js';
+import {getMap,DEFAULT_MAP} from '../shared/maps/registry.js';
+const MAP=getMap(DEFAULT_MAP);
 import {tacticalGoal,shareSighting} from '../server/bot-tactics.js';
 import {getWeapon} from '../shared/weapons.js';
 function fixture(){const floor=new BoxGeometry(400,1,400).toNonIndexed();floor.translate(0,-.5,0);initPhysics(floor.attributes.position.array);floor.dispose();let now=100000;const r=new GameRoom('UPDATE',{bots:0,clock:()=>now});const p=r.addHuman({}, {name:'T',team:'T'}),ct=r.addHuman({}, {name:'CT',team:'CT'});r.round.phase='live';r.round.phaseEndsAt=now+115000;return {r,p,ct,advance:ms=>now+=ms,tick:()=>{now+=1000/30;r.tick(1/30);}};}

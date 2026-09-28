@@ -1,14 +1,15 @@
-"""Fetch only Dust II members from the versioned Awpy source archives.
+"""Fetch one map's members from the versioned Awpy source archives.
 
 Game assets belong to Valve. This script uses standard ZIP byte ranges;
 it neither downloads the game nor modifies installed game files.
+
+Usage: python scripts/map-fetch.py --map de_mirage
 """
-import io, json, pathlib, struct, urllib.request, zipfile
+import argparse, io, json, pathlib, urllib.request, zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-OUT = ROOT / 'public/assets/map'
-OUT.mkdir(parents=True, exist_ok=True)
 BASE = 'https://github.com/pnxenopoulos/awpy-data/releases/download/2000905/'
+
 
 class RemoteZip(io.RawIOBase):
     def __init__(self, url):
@@ -33,15 +34,32 @@ class RemoteZip(io.RawIOBase):
         self.pos += n
         return data
 
-for archive, suffix in [('geometry.zip', '.mesh'), ('navs.zip', '.nav')]:
-    remote = RemoteZip(BASE+archive)
-    with zipfile.ZipFile(remote) as z:
-        member = next(n for n in z.namelist() if pathlib.PurePosixPath(n).name == 'de_dust2'+suffix)
-        info = z.getinfo(member)
-        print(json.dumps({'archive': archive, 'member':member, 'size':info.file_size, 'compressed':info.compress_size}), flush=True)
-        data = z.read(member)
-        (OUT / ('de_dust2'+suffix)).write_bytes(data)
-        print(f'Wrote {len(data)} bytes', flush=True)
 
-with urllib.request.urlopen(BASE+'manifest.json', timeout=20) as response:
-    (OUT/'source-manifest.json').write_bytes(response.read())
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--map', dest='map_id', default='de_dust2', help='Map name, e.g. de_mirage')
+    parser.add_argument('--out', default=None, help='Output directory (default public/assets/maps/<map>)')
+    args = parser.parse_args()
+    map_id = args.map_id
+
+    out = pathlib.Path(args.out) if args.out else ROOT / 'public' / 'assets' / 'maps' / map_id
+    out.mkdir(parents=True, exist_ok=True)
+
+    for archive, suffix in [('geometry.zip', '.mesh'), ('navs.zip', '.nav')]:
+        remote = RemoteZip(BASE+archive)
+        with zipfile.ZipFile(remote) as z:
+            member = next(n for n in z.namelist() if pathlib.PurePosixPath(n).name == map_id+suffix)
+            info = z.getinfo(member)
+            print(json.dumps({'archive': archive, 'member': member, 'size': info.file_size,
+                              'compressed': info.compress_size}), flush=True)
+            data = z.read(member)
+            (out / (map_id+suffix)).write_bytes(data)
+            print(f'Wrote {len(data)} bytes to {out / (map_id+suffix)}', flush=True)
+
+    with urllib.request.urlopen(BASE+'manifest.json', timeout=20) as response:
+        (out / 'source-manifest.json').write_bytes(response.read())
+    print(json.dumps({'map': map_id, 'out': str(out)}, ensure_ascii=False), flush=True)
+
+
+if __name__ == '__main__':
+    main()

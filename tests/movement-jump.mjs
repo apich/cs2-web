@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { BoxGeometry } from 'three';
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
+const MAP = getMap(DEFAULT_MAP);
 import { initPhysics, createPlayerState, stepPlayer, GRAVITY, JUMP_SPEED, CROUCH_JUMP_LIFT, STAND_HEIGHT, CROUCH_HEIGHT } from '../shared/physics.js';
 
 const plane=(degrees=0)=>{

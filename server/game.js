@@ -4,8 +4,8 @@ import {combatMovement} from './bot-combat.js';
 import {combatSlot} from './bot-utility.js';
 import {tacticalGoal,shareSighting,botUtility,separateTeammates} from './bot-tactics.js';
 import { randomBytes } from 'node:crypto';
-import { MAP } from '../shared/map-data.js';
-import { createPlayerState, stepPlayer, stepCorpse, raycastWorld, raycastWorldContact, resolveAllPlayerCollisions } from '../shared/physics.js';
+import { createPlayerState, stepPlayer, stepCorpse, raycastWorld, raycastWorldContact, resolveAllPlayerCollisions, activeLadders, hasWorld, activateWorld } from '../shared/physics.js';
+import { LADDER_GRAB_MARGIN, ladderVolumeAt } from '../shared/ladders.js';
 import { WEAPONS, PRIMARY_WEAPONS, getWeapon, normalizeWeapon, canTeamUseWeapon, defaultPrimaryForTeam, weaponSpeedScale, killReward } from '../shared/weapons.js';
 import { DEFAULT_SKINS, getSkin, normalizeSkinLoadout } from '../shared/skins.js';
 import { DEFAULT_AGENT_IDS, getAgent, normalizeAgentLoadout } from '../shared/agents.js';
@@ -16,6 +16,7 @@ import { BOT_AIM, BOT_SKILL, smoothBotAim } from './bot-aim.js';
 import { DroppedWeapons } from './dropped-weapons.js';
 import { traceBullet as defaultTraceBullet } from './bullet-penetration.js';
 import {eyePosition,accuracyForShot,sampleShotDirection,shotRng,aimPitch,bulletFireAngles,getRecoveryTime,getInaccuracyFire,createRecoilState,applyRecoilKick,decayRecoilState,decayRecoilIndex,decayAccuracyPenalty,RECOIL_DECAY_THRESHOLD} from '../shared/aim.js';
+import { getMap, DEFAULT_MAP, resolveMapId } from '../shared/maps/registry.js';
 import {PlayerTimeline,MAX_REWIND_MS} from '../shared/player-timeline.js';
 import {MovementStream,sanitizeMoves,movementState} from '../shared/movement-commands.js';
 import {reloadProfile} from '../shared/reload-profiles.js';
@@ -133,8 +134,12 @@ export function applyArmorDamage(rawDamage, player, { headshot=false, armorRatio
 }
 
 export class GameRoom {
-  constructor(code, { mode = 'defuse', bots = 6, clock = () => Date.now(), rules = {}, traceBullet=defaultTraceBullet } = {}) {
+  constructor(code, { mode = 'defuse', bots = 6, clock = () => Date.now(), rules = {}, traceBullet=defaultTraceBullet, mapId = DEFAULT_MAP } = {}) {
     this.code = code; this.mode = mode==='deathmatch'?'deathmatch':'defuse'; this.desiredBots = botCount(bots);
+    // Every room owns a map. The pool it was drawn from is kept so a rematch can
+    // re-roll; `mapId` is the one currently loaded.
+    this.mapId = resolveMapId(mapId); this.mapPool = null;
+    this.map = getMap(this.mapId);
     mode=this.mode;this.traceBullet=traceBullet;this.hostId=null;
     this.clock = clock; this.rules = { ...RULES, ...rules }; this.players = new Map(); this.clients = new Map();
     this.scores = { T: 0, CT: 0 }; this.events = []; this.eventCounter = 0; this.botCounter = 0; this.spawnCounter = { T: 0, CT: 0 };
@@ -143,7 +148,7 @@ export class GameRoom {
     this.pendingTransition=null;
     this.createdAt = clock(); this.round = { number: 0, phase: mode === 'deathmatch' ? 'live' : 'waiting', phaseEndsAt: 0, buyEndsAt: 0, winner: null, reason: '' };
     this.bomb = this.emptyBomb();
-    this.nav = Array.isArray(MAP.nav) ? MAP.nav : [];
+    this.nav = Array.isArray(this.map.nav) ? this.map.nav : [];
     this.navMap = new Map(this.nav.map(n => [String(n.id), n]));
     this.grenades=new GrenadeSimulation({clock,raycastWorld,raycastContact:raycastWorldContact,onFire:(fire,config)=>this.burnPlayers(fire,config),emit:(type,fields)=>this.emit(type,fields),onExplosion:(grenade,config)=>this.explodeGrenade(grenade,config),onFlash:(grenade,config)=>this.flashGrenade(grenade,config)});
     this.defuseKits=[];this.kitSerial=0;
@@ -247,7 +252,7 @@ export class GameRoom {
   }
 
   pickSpawn(team) {
-    const pool = MAP.spawns?.[team];
+    const pool = this.map.spawns?.[team];
     if (!Array.isArray(pool) || !pool.length) throw new Error(`Map has no ${team} spawn points`);
     // Favor a spawn with fewer visible opponents, then rotate equivalent candidates.
     const order = this.spawnCounter[team]++;
@@ -357,7 +362,7 @@ export class GameRoom {
     if(!p?.alive)return {buyAllowed:false,buyReason:'存活时才可以购买。'};
     if(this.mode==='defuse'){
       if(!['freeze','live'].includes(this.round.phase)||this.clock()>this.round.buyEndsAt)return {buyAllowed:false,buyReason:'购买时间已经结束。'};
-      if(!MAP.spawns[p.team].some(s=>lengthXZ(s,p)<9&&Math.abs(s.y-p.y)<3))return {buyAllowed:false,buyReason:'请在己方出生区购买。'};
+      if(!this.map.spawns[p.team].some(s=>lengthXZ(s,p)<9&&Math.abs(s.y-p.y)<3))return {buyAllowed:false,buyReason:'请在己方出生区购买。'};
     }
     return {buyAllowed:true,buyReason:''};
   }
@@ -705,7 +710,7 @@ export class GameRoom {
     if(Number.isFinite(timeSinceLastShot)){
       decayRecoilIndex(p.recoil,timeSinceLastShot-w.fireInterval*RECOIL_DECAY_THRESHOLD);
       decayRecoilState(p.recoil,timeSinceLastShot);
-      p.inaccuracyPenalty=decayAccuracyPenalty(p.inaccuracyPenalty,timeSinceLastShot,getRecoveryTime(w.id,{crouch:p.crouch,inAir:!p.grounded,recoilIndex:p.recoil.index}));
+      p.inaccuracyPenalty=decayAccuracyPenalty(p.inaccuracyPenalty,timeSinceLastShot,getRecoveryTime(w.id,{crouch:p.crouch,inAir:!p.grounded,onLadder:!!p.onLadder,recoilIndex:p.recoil.index}));
     }
     const fireAngles=bulletFireAngles(input.yaw,input.pitch,p.recoil);
     const zoomLevel=clamp(command?input.zoomLevel:p.zoomLevel||0,0,w.zoomFovs.length-1),scoped=zoomLevel>0;
@@ -819,7 +824,7 @@ export class GameRoom {
     Object.assign(this.bomb, this.droppedWeapons.throwState(p), { actorId: null, action: null, progress: 0 });
   }
 
-  siteAt(p) { return Object.entries(MAP.sites || {}).find(([, site]) => lengthXZ(site, p) <= site.radius && Math.abs(site.y - p.y) < 3)?.[0] || null; }
+  siteAt(p) { return Object.entries(this.map.sites || {}).find(([, site]) => lengthXZ(site, p) <= site.radius && Math.abs(site.y - p.y) < 3)?.[0] || null; }
 
   bombIntent(p,input){
     if(!p?.alive||!p.grounded||this.mode!=='defuse'||this.round.phase!=='live')return null;
@@ -904,11 +909,12 @@ export class GameRoom {
     if (this.mode === 'defuse') {
       if (bomb.state === 'planted') return copyPoint(bomb);
       if (p.team === 'T' && bomb.state === 'dropped') return copyPoint(bomb);
-      if (p.hasBomb) return copyPoint(MAP.sites?.[Number(p.id.slice(2)) % 2 ? 'A' : 'B'] || Object.values(MAP.sites)[0]);
+      const sites=this.map.sites||{};
+      if (p.hasBomb) return copyPoint(sites[Number(p.id.slice(2)) % 2 ? 'A' : 'B'] || Object.values(sites)[0]);
     }
     if (ai.lastKnown && this.clock() - ai.lastSeenAt < 6500) return ai.lastKnown;
-    if (this.mode === 'defuse' && MAP.sites) {
-      const sites = Object.values(MAP.sites); const site = sites[Math.floor(Math.random() * sites.length)];
+    if (this.mode === 'defuse' && this.map.sites) {
+      const sites = Object.values(this.map.sites); const site = sites[Math.floor(Math.random() * sites.length)];
       if (site && Math.random() < 0.7) return copyPoint(site);
     }
     if (this.nav.length) return copyPoint(this.nav[Math.floor(Math.random() * this.nav.length)]);
@@ -944,7 +950,22 @@ export class GameRoom {
     while(ai.path.length&&lengthXZ(p,ai.path[0])<.8&&Math.abs(p.y-ai.path[0].y)<1.5)ai.path.shift();
     const waypoint=ai.path[0];
     let desired={yaw:input.yaw,pitch:input.pitch},engaging=false;
-    if(waypoint){desired={yaw:Math.atan2(-(waypoint.x-p.x),-(waypoint.z-p.z)),pitch:0};if(waypoint.y-p.y>.4||now-ai.stuckAt>1300)input.jump=Math.floor(now/600)%2===0;}
+    if(waypoint){
+      desired={yaw:Math.atan2(-(waypoint.x-p.x),-(waypoint.z-p.z)),pitch:0};
+      // A ladder is climbed with the forward axis: W up, S down, nothing to
+      // hang. The bot still has to face the face (yaw + PI) so that walking into
+      // it mounts it, but the throttle is forward, not the view.
+      const ladders=activeLadders();
+      const climbTo=ladderVolumeAt(ladders,waypoint.x,waypoint.y,waypoint.z,LADDER_GRAB_MARGIN);
+      const climbing=p.onLadder||climbTo;
+      if(climbTo)desired={yaw:climbTo.yaw+Math.PI,pitch:0};
+      if(climbing){
+        // Forward is the throttle; the horizontal delta is noise on a rail.
+        input.forward=waypoint.y>p.y+.2?1:waypoint.y<p.y-.2?-1:0;
+        input.right=0;
+        if(waypoint.y-p.y>.4||now-ai.stuckAt>1300)input.jump=Math.floor(now/600)%2===0;
+      }
+    }
     const watch=observationPoint(this,p,waypoint);if(watch)desired=lookAt(from,watch);
     const exposed=target?.alive&&now>=(p.flashBlindUntil||0)?visibleAimPoint(this,p,target):null;
     if(exposed){
@@ -963,6 +984,8 @@ export class GameRoom {
     }else if(waypoint){
       const dx=waypoint.x-p.x,dz=waypoint.z-p.z,d=Math.max(.01,Math.hypot(dx,dz));
       input.forward=(-Math.sin(input.yaw)*dx-Math.cos(input.yaw)*dz)/d;input.right=(Math.cos(input.yaw)*dx-Math.sin(input.yaw)*dz)/d;
+      // On a rail the horizontal delta is noise; the ladder only needs forward,
+      // which the climbing block above already signed.
     }
     const ammo=p.inventory[p.weapon];if(ammo&&getWeapon(p.weapon).slot<3&&ammo.ammo<3)input.reload=true;
     if(this.mode==='defuse'){
@@ -978,6 +1001,11 @@ export class GameRoom {
   tick(dt = 1 / TICK_RATE) {
     const now = this.clock();
     if(this.match.status==='ended')return;
+    // Each room runs on its own collision world. The hasWorld guard is not
+    // optional: tests construct rooms on synthetic geometry where no world is
+    // registered, and switching unconditionally would blank `world` and freeze
+    // every player.
+    if(hasWorld(this.mapId))activateWorld(this.mapId);
     this.maybeStart();
     this.recordPoses();
     if (this.mode === 'defuse') {
@@ -1033,7 +1061,7 @@ export class GameRoom {
         // View/fire input remains immediate; queued movement never rewinds aim.
         p.yaw=input.yaw;p.pitch=input.pitch;
       }else stepPlayer(p, input, dt);
-      if (!Number.isFinite(p.x + p.y + p.z) || p.outOfWorld || p.y < (MAP.bounds?.min?.y ?? -200) - 30) { this.kill(p, null); continue; }
+      if (!Number.isFinite(p.x + p.y + p.z) || p.outOfWorld || p.y < (this.map.bounds?.min?.y ?? -200) - 30) { this.kill(p, null); continue; }
       if(p.reloadEndsAt&&now>=p.reloadEndsAt)this.finishReload(p);
       if (input.reload) this.reload(p);
       const heldAmmo=p.inventory[p.weapon];
@@ -1059,7 +1087,7 @@ export class GameRoom {
   snapshot({ drainEvents = true } = {}) {
     const now = this.clock();
     const players = [...this.players.values()].map(p => ({ id: p.id,seat:p.seat, lifeId:p.lifeId,name: p.name, team: p.team, teamId:p.teamId, bot: p.bot, ...(p.controllerId?{controllerId:p.controllerId}:{}),...(p.controlledBotId?{controlledBotId:p.controlledBotId}:{}), agentId:p.agentId||DEFAULT_AGENT_IDS[p.team], x: round2(p.x), y: round2(p.y), z: round2(p.z),
-      vx: round2(p.vx), vy: round2(p.vy), vz: round2(p.vz), yaw: round2(p.yaw), pitch: round2(p.pitch), crouch: !!p.crouch, grounded: !!p.grounded,
+      vx: round2(p.vx), vy: round2(p.vy), vz: round2(p.vz), yaw: round2(p.yaw), pitch: round2(p.pitch), crouch: !!p.crouch, grounded: !!p.grounded, onLadder: !!p.onLadder,
       ...(p.movementStream?{movementAck:p.movementStream.ack,movementState:movementState(p)}:{}),
       objectiveLocked:!!p.objectiveLocked,health: p.health, armor: round2(p.armor), helmet:!!p.helmet, defuseKit:!!p.defuseKit,zoomLevel:p.zoomLevel,utilityCounts:Object.fromEntries(UTILITY_IDS.map(id=>[id,p.inventory[id]?.ammo||0])),utilityBudget:Object.fromEntries(UTILITY_IDS.map(id=>[id,this.utilityBudget(p)[id]||0])), alive: p.alive, weapon: p.weapon, skinId:this.heldSkin(p), slot: p.slot, ammo: p.inventory[p.weapon]?.ammo || 0, reserve: p.inventory[p.weapon]?.reserve || 0,
       reserveAmmoAsClips:!!getWeapon(p.weapon).reserveAmmoAsClips,reserveClips:getWeapon(p.weapon).reserveAmmoAsClips?Math.ceil((p.inventory[p.weapon]?.reserve||0)/getWeapon(p.weapon).magazine):0,
@@ -1069,7 +1097,7 @@ export class GameRoom {
       roundKills:p.roundKills||0,lifeKills:p.lifeKills||0,killCards:p.killCards||[],
       respawnIn: p.respawnAt ? Math.max(0, (p.respawnAt - now) / 1000) : 0, lastShotTime: p.lastShotTime }));
     const events = drainEvents ? this.events.splice(0) : [...this.events];
-    return { type: 'snapshot', time: now, room: this.code, mode: this.mode, hostId:this.hostId,seats:this.roomSeats(),desiredBots:this.desiredBots,botCount:this.botCount,match:this.matchSnapshot(),players,droppedWeapons:this.droppedWeapons.snapshot(),defuseKits:this.defuseKits.map(k=>({...k})),...this.grenades.snapshot(),
+    return { type: 'snapshot', time: now, room: this.code, mode: this.mode, map: this.mapId, maps: this.mapPool||[this.mapId], hostId:this.hostId,seats:this.roomSeats(),desiredBots:this.desiredBots,botCount:this.botCount,match:this.matchSnapshot(),players,droppedWeapons:this.droppedWeapons.snapshot(),defuseKits:this.defuseKits.map(k=>({...k})),...this.grenades.snapshot(),
       round: { ...this.round, timeLeft: this.round.phaseEndsAt ? Math.max(0, (this.round.phaseEndsAt - now) / 1000) : 0 },
       bomb: { ...this.bomb, remaining: this.bomb.state === 'planted' ? Math.max(0, (this.bomb.explodesAt - now) / 1000) : 0 }, scores: { ...this.scores }, events };
   }

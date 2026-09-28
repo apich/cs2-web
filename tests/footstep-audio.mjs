@@ -8,6 +8,7 @@ import {
   CS2_HARD_LAND_VELOCITY,
   CS2_SOFT_LAND_VELOCITY,
 } from '../client/footstep-system.js';
+import { getMap } from '../shared/maps/registry.js';
 import { initPhysics, getGroundMaterial } from '../shared/physics.js';
 import fs from 'node:fs';
 
@@ -252,7 +253,9 @@ test('CS2 Ground Material Awareness: detects sand in Pit, wood, metal, and concr
   const raw = fs.readFileSync(new URL('../public/assets/map/positions.f32', import.meta.url));
   const positions = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4);
   const materials = fs.readFileSync(new URL('../public/assets/map/penetration-materials.u8', import.meta.url));
-  initPhysics(positions, materials);
+  // The Pit's sand is a per-map ground patch, not shared physics, so the world
+  // has to be loaded with Dust II's descriptor for the patch to apply.
+  initPhysics(positions, materials, 'de_dust2', getMap('de_dust2').ladders, getMap('de_dust2').groundPatches);
 
   // Pit area
   const pitMaterial = getGroundMaterial(35.14, -4.4, -6.32);

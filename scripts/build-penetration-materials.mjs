@@ -1,9 +1,25 @@
+// Map each reduced collision triangle to the surface material of the nearest
+// original render surface, so wallbangs behave like the map's real materials.
+// Usage: node scripts/build-penetration-materials.mjs --map de_mirage
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {Matrix4,Vector3,Quaternion,BufferGeometry,Float32BufferAttribute} from 'three';
 import {MeshBVH,CENTER} from 'three-mesh-bvh';
-const root=path.resolve(import.meta.dirname,'..'),file=path.join(root,'artifacts/cs2-dust2-web-stage/dust2.gltf');
+const root=path.resolve(import.meta.dirname,'..');
+const arg=(name,fallback)=>{
+  const eq=process.argv.find(a=>a.startsWith(`--${name}=`));
+  if(eq)return eq.slice(name.length+3);
+  const at=process.argv.indexOf(`--${name}`);
+  if(at>=0&&process.argv[at+1]&&!process.argv[at+1].startsWith('--'))return process.argv[at+1];
+  return fallback;
+};
+const mapId=arg('map','de_dust2');
+// Dust II keeps its historical single-map layout; newer maps live per map id.
+const legacy=mapId==='de_dust2';
+const stage=path.resolve(arg('stage',path.join(root,legacy?'artifacts/cs2-dust2-web-stage':`artifacts/cs2-${mapId}-web-stage`)),legacy?'dust2.gltf':`${mapId}.gltf`);
+const collisionFile=arg('collision',legacy?'public/assets/map/positions.f32':`public/assets/maps/${mapId}/positions.f32`);
+const file=stage;
 const gltf=JSON.parse(fs.readFileSync(file));
 const buffers=gltf.buffers.map(b=>fs.readFileSync(path.resolve(path.dirname(file),b.uri))),cache=new Map();
 function accessor(id){
@@ -35,13 +51,13 @@ function visit(id,parent){
 }
 for(const n of gltf.scenes[gltf.scene||0].nodes)visit(n,rotation);
 const geometry=new BufferGeometry().setAttribute('position',new Float32BufferAttribute(positions,3)),bvh=new MeshBVH(geometry,{strategy:CENTER,targetLeafSize:12});
-const bytes=fs.readFileSync(path.join(root,'public/assets/map/positions.f32')),collision=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4),output=new Uint8Array(collision.length/9),nearest={},counts={0:0,1:0,2:0,3:0};
+const bytes=fs.readFileSync(path.resolve(root,collisionFile)),collision=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4),output=new Uint8Array(collision.length/9),nearest={},counts={0:0,1:0,2:0,3:0};
 for(let i=0;i<output.length;i++){
  const k=i*9;v.set((collision[k]+collision[k+3]+collision[k+6])/3,(collision[k+1]+collision[k+4]+collision[k+7])/3,(collision[k+2]+collision[k+5]+collision[k+8])/3);
  const hit=bvh.closestPointToPoint(v,nearest,0,.16);
  if(hit)output[i]=classes[Math.floor(geometry.index.getX(hit.faceIndex*3)/3)]||0;
  counts[output[i]]++;
 }
-const out=path.join(root,'public/assets/map/penetration-materials.u8');fs.writeFileSync(out,output);
+const out=path.join(root,legacy?'public/assets/map/penetration-materials.u8':`public/assets/maps/${mapId}/penetration-materials.u8`);fs.writeFileSync(out,output);
 const report={source:'Original CS2 render VMAT names mapped onto reduced collision triangles',method:'Nearest original wood/metal/glass surface within 0.16 m; unmatched defaults to concrete. Not original Source 2 surface-property data.',ids:{0:'concrete/unknown',1:'wood',2:'metal',3:'glass'},counts,sourceMaterials:[...sourceNames].sort(),bytes:output.length,sha256:createHash('sha256').update(output).digest('hex'),sourceGeometrySha256:createHash('sha256').update(fs.readFileSync(file)).digest('hex')};
 fs.writeFileSync(out.replace('.u8','.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({counts,bytes:output.length,sha256:report.sha256,renderTriangles:classes.length}));geometry.dispose();

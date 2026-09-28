@@ -18,6 +18,8 @@
     "ws": "8.21.3"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.3.0",
+    "meshoptimizer": "^1.2.0",
     "sharp": "^0.35.4",
     "vite": "8.2.2"
   },
