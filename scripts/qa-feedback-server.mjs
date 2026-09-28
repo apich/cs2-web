@@ -2,7 +2,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { startGameServer } from '../server/index.js';
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
+const MAP = getMap(DEFAULT_MAP);
 import { createPlayerState, stepPlayer, raycastWorld } from '../shared/physics.js';
 
 const root = path.resolve(import.meta.dirname, '..');

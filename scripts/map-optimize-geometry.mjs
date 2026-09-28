@@ -1,25 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
-import {pathToFileURL} from 'node:url';
+import {createReader, core, extensions, functions} from './lib/gltf-transform.mjs';
+import {MeshoptEncoder, MeshoptDecoder} from 'meshoptimizer';
 
-// Uses the official glTF Transform CLI's cached dependencies. Install once:
-// npx --yes @gltf-transform/cli@4.3.0 --version
-const cache=path.join(os.homedir(),'AppData','Local','npm-cache','_npx');
-const packages=fs.readdirSync(cache).map(d=>path.join(cache,d,'node_modules'));
-const modules=packages.find(p=>{
-  try{return JSON.parse(fs.readFileSync(path.join(p,'@gltf-transform/cli/package.json'),'utf8')).version==='4.3.0';}catch{return false;}
-});
-if(!modules)throw new Error('Install @gltf-transform/cli@4.3.0 with npx first.');
-const get=relative=>import(pathToFileURL(path.join(modules,relative)).href);
-const {NodeIO,getBounds,Logger}=await get('@gltf-transform/core/dist/index.js');
-const {ALL_EXTENSIONS}=await get('@gltf-transform/extensions/dist/index.js');
-const {dedup,join,prune,meshopt}=await get('@gltf-transform/functions/dist/index.js');
-const {MeshoptEncoder,MeshoptDecoder}=await get('meshoptimizer/index.js');
+const {getBounds, Logger} = core;
+const {ALL_EXTENSIONS} = extensions;
+const {dedup, join, prune, meshopt} = functions;
 await MeshoptEncoder.ready;
-const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder,'meshopt.decoder':MeshoptDecoder});
+const io=createReader().registerDependencies({'meshopt.encoder':MeshoptEncoder,'meshopt.decoder':MeshoptDecoder});
 const input=path.resolve(process.argv[2]||'artifacts/cs2-dust2-web-stage/dust2.gltf');
 const output=path.resolve(process.argv[3]||'public/assets/map-cs2/dust2-web.gltf');
+// Region node names carry the map id; default it from the input file stem.
+const mapId=process.argv[4]||path.basename(input).replace(/\.gltf$/,'').replace(/-web$/,'');
 const doc=await io.read(input);
 doc.setLogger(new Logger(Logger.Verbosity.ERROR));
 const root=doc.getRoot();
@@ -51,7 +43,7 @@ for(const scene of root.listScenes()){
     // Export coordinates are already metric, Y up. 24 m regions retain
     // useful street-sized frustum culling instead of merging the whole map.
     const key=`${Math.floor((bounds.min[0]+bounds.max[0])/48)},${Math.floor((bounds.min[2]+bounds.max[2])/48)}`;
-    if(!cells.has(key)){const cell=doc.createNode(`Dust II region ${key}`);scene.addChild(cell);cells.set(key,cell);regions++;}
+    if(!cells.has(key)){const cell=doc.createNode(`${mapId} region ${key}`);scene.addChild(cell);cells.set(key,cell);regions++;}
     scene.removeChild(node);cells.get(key).addChild(node);
   }
 }

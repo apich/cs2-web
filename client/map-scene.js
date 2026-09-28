@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {gameGLTFLoader} from './gltf-loader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
 import { assetURL, useDownloadedAssets } from './loading.js';
 
 const assetUrl=path=>new URL(path.replace(/^\//,''),document.baseURI).href;
@@ -118,26 +118,33 @@ export function shiftAlongNormal(object, worldDistance) {
 function shiftOverlayOntoSurface(object) { shiftAlongNormal(object, 0.392); }
 function shiftWindowInsetOntoSurface(object) { shiftAlongNormal(object, 0.392); }
 
-export async function createMapScene(scene,{onProgress=()=>{}}={}) {
-  onProgress('载入 CS2 原版 Dust II 场景…');
+export async function createMapScene(scene,{onProgress=()=>{},mapId=DEFAULT_MAP}={}) {
+  const MAP = getMap(mapId);
+  const lighting = MAP.lighting;
+  onProgress(`载入 CS2 原版 ${MAP.name} 场景…`);
   const manager=new THREE.LoadingManager();
   useDownloadedAssets(manager);
   manager.onProgress=(_url,loaded,total)=>{
     if(total>5)onProgress(`载入原版材质 ${Math.min(loaded,total)} / ${total}…`);
   };
   const loader=gameGLTFLoader(manager).setMeshoptDecoder(MeshoptDecoder);
+  // Only the desktop render URL carries a cache-busting query, matching the
+  // behaviour before this became per-map data.
+  const renderPath = mobileDevice()
+    ? MAP.assets.renderMobile
+    : `${MAP.assets.renderDesktop}${MAP.assets.renderVersionDesktop ? `?v=${MAP.assets.renderVersionDesktop}` : ''}`;
   const [gltf,response,sky,matResponse]=await Promise.all([
-    loader.loadAsync(assetUrl(mobileDevice()?'assets/map-mobile/dust2-mobile.gltf':'assets/map-cs2/dust2-web.gltf?v=e4f2b2d3903c')),
-    fetch(assetURL(assetUrl(MAP.geometryUrl))),
-    new HDRLoader(manager).loadAsync(assetUrl('assets/sky/daylight.hdr?v=5244534e9cf5')),
-    fetch(assetURL(assetUrl('assets/map/penetration-materials.u8'))).catch(()=>null),
+    loader.loadAsync(assetUrl(renderPath)),
+    fetch(assetURL(assetUrl(MAP.assets.geometryUrl))),
+    new HDRLoader(manager).loadAsync(assetUrl(MAP.skyUrl)),
+    fetch(assetURL(assetUrl(MAP.assets.penetrationUrl))).catch(()=>null),
   ]);
   if(!response.ok)throw new Error(`地图碰撞下载失败 (${response.status})`);
   const positions=new Float32Array(await response.arrayBuffer());
   const surfaceMaterials = matResponse && matResponse.ok ? new Uint8Array(await matResponse.arrayBuffer()) : null;
   onProgress('对齐场景、材质和碰撞…');
   const group=new THREE.Group();
-  group.name='Dust II · original CS2 render';
+  group.name=`${MAP.name} · original CS2 render`;
   // S2V: Source (x,y,z) → meters (y,z,x). Gameplay: (x,z,-y).
   // S2V already bakes inch-to-meter scaling; do not scale the model again.
   group.rotation.y=Math.PI/2;
@@ -177,7 +184,9 @@ export async function createMapScene(scene,{onProgress=()=>{}}={}) {
 
   // Keep the exported sun direction. Web lighting approximates Source 2's
   // baked lighting; original surface textures and their UVs stay untouched.
-  const sunDirection=new THREE.Vector3(-.43,-.84,-.33);
+  // Kept from the exported S2V sun; overridden below when the original
+  // directional light resolves to a usable direction.
+  const sunDirection=new THREE.Vector3(lighting.sunDirection.x,lighting.sunDirection.y,lighting.sunDirection.z);
   const originalSun=originalLights.find(l=>l.isDirectionalLight);
   if(originalSun){
     const origin=new THREE.Vector3(),target=new THREE.Vector3();
@@ -190,24 +199,30 @@ export async function createMapScene(scene,{onProgress=()=>{}}={}) {
   // multiplying every imported object matrix on every animation frame.
   group.traverse(object=>{object.matrixAutoUpdate=false;object.matrixWorldAutoUpdate=false;});
   sky.mapping=THREE.EquirectangularReflectionMapping;
-  scene.background=sky;scene.backgroundIntensity=.8;
-  scene.backgroundRotation.y=1.2;
+  scene.background=sky;
+  scene.backgroundIntensity=lighting.backgroundIntensity;
+  scene.backgroundRotation.y=lighting.backgroundRotationY;
   scene.userData.sky={source:'Poly Haven / Kloofendal 48d Partly Cloudy',resolution:'2048 × 1024',downloadBytes:5451493};
-  scene.fog=new THREE.Fog(0xc9d8de,140,300);
-  const hemisphere=new THREE.HemisphereLight(0xd5e9ff,0x99805f,2.15);
+  // Lighting is per map: the Dust II values are tuned to a ~100x108 m map, and
+  // the shadow camera must cover whatever this map's playable extent is.
+  scene.fog=new THREE.Fog(lighting.fogColor,lighting.fogNear,lighting.fogFar);
+  const hemisphere=new THREE.HemisphereLight(lighting.hemisphereSky,lighting.hemisphereGround,lighting.hemisphereIntensity);
   hemisphere.name='dust2-web-sky';
-  const sun=new THREE.DirectionalLight(0xfff0d7,3.3);
+  const sun=new THREE.DirectionalLight(lighting.sunColor,lighting.sunIntensity);
   sun.name='dust2-web-sun';
-  const center=new THREE.Vector3(-5,0,-25);
+  const center=new THREE.Vector3(lighting.sunCenter.x,lighting.sunCenter.y,lighting.sunCenter.z);
   sun.target.position.copy(center);
-  sun.position.copy(center).addScaledVector(sunDirection,-110);
-  sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
-  Object.assign(sun.shadow.camera,{left:-78,right:78,top:78,bottom:-78,near:1,far:230});
-  sun.shadow.normalBias=.035;sun.shadow.bias=-.00012;
+  sun.position.copy(center).addScaledVector(sunDirection,-lighting.sunOffset);
+  sun.castShadow=true;sun.shadow.mapSize.set(lighting.shadowMapSize,lighting.shadowMapSize);
+  Object.assign(sun.shadow.camera,{left:-lighting.shadowExtent,right:lighting.shadowExtent,top:lighting.shadowExtent,bottom:-lighting.shadowExtent,near:lighting.shadowNear,far:lighting.shadowFar});
+  sun.shadow.normalBias=lighting.shadowNormalBias;sun.shadow.bias=lighting.shadowBias;
   scene.add(hemisphere,sun,sun.target);
-  group.userData.renderStats={meshCount,triangles,materials:materials.size,textures:textures.size,originalCS2Materials:true};
-  onProgress('CS2 原版 Dust II 场景就绪');
-  return {mapData:MAP,positions,surfaceMaterials,group,lights:[hemisphere,sun],spawn:MAP.spawns.T[0]};
+  group.userData.renderStats={meshCount,triangles,materials:materials.size,textures:textures.size,originalCS2Materials:true,mapId:MAP.id};
+  onProgress(`CS2 原版 ${MAP.name} 场景就绪`);
+  // `lights` lists every scene object this function added besides `group`
+  // (sun.target included), so the caller can detach or re-attach the whole map
+  // in one place; `sky`/`fog` let a cache hit restore the scene environment.
+  return {mapData:MAP,mapId:MAP.id,positions,surfaceMaterials,group,lights:[hemisphere,sun,sun.target],sky,fog:scene.fog,spawn:MAP.spawns.T[0]};
 }
 
-export { MAP };
+export { DEFAULT_MAP };

@@ -8,7 +8,8 @@ import {EQUIPMENT,UTILITY_IDS,teamUtilities} from '../shared/equipment.js';
 import {initPhysics,createPlayerState,stepPlayer,raycastWorld,raycastWorldContact} from '../shared/physics.js';
 import {MovementStream,movementState,simulateMove} from '../shared/movement-commands.js';
 import {MovementPrediction} from '../client/movement-prediction.js';
-import {MAP} from '../shared/map-data.js';
+import {getMap,DEFAULT_MAP} from '../shared/maps/registry.js';
+const MAP=getMap(DEFAULT_MAP);
 import {UTILITY_ASSETS} from '../shared/utility-assets.js';
 const box=(x,y,z,w,h,d)=>{const g=new BoxGeometry(w,h,d).toNonIndexed();g.translate(x,y,z);const a=[...g.attributes.position.array];g.dispose();return a;};
 function world(){initPhysics([...box(0,-.5,0,200,1,200),...box(5,2,0,.2,4,20)]);}

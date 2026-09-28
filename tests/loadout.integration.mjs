@@ -4,7 +4,8 @@ import { once } from 'node:events';
 import { WebSocket } from 'ws';
 import { startGameServer } from '../server/index.js';
 import { GameRoom } from '../server/game.js';
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
+const MAP = getMap(DEFAULT_MAP);
 import { raycastWorld } from '../shared/physics.js';
 
 async function connect(port, settings) {

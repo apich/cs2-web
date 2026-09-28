@@ -6,7 +6,8 @@ import {WebSocket} from 'ws';
 import {GameRoom} from '../server/game.js';
 import {startGameServer} from '../server/index.js';
 import {getWeapon} from '../shared/weapons.js';
-import {MAP} from '../shared/map-data.js';
+import {getMap,DEFAULT_MAP} from '../shared/maps/registry.js';
+const MAP=getMap(DEFAULT_MAP);
 
 const input=(seq,extra={})=>({seq,forward:0,right:0,yaw:0,pitch:0,slot:1,...extra});
 function fixture(mode='deathmatch',bots=0){let now=100000;const room=new GameRoom('NEWQA',{mode,bots,clock:()=>now});const p=room.addHuman({}, {name:'owner',team:'T'});return {room,p,advance:ms=>now+=ms,now:()=>now};}

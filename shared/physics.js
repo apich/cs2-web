@@ -1,6 +1,12 @@
 import { BufferGeometry, Float32BufferAttribute, Vector3, Ray, Box3, DoubleSide } from 'three';
 import { MeshBVH, CENTER } from 'three-mesh-bvh';
 import {HullContact} from './hull-collision.js';
+import {
+  LADDER_CLIMB_SPEED, LADDER_DESCENT_SPEED, LADDER_GRAB_MARGIN, LADDER_JUMP_PUSH,
+  LADDER_BASE_TOLERANCE, LADDER_JUMP_SPEED, LADDER_LEDGE_REACH, LADDER_LEDGE_SWEEP,
+  LADDER_SNAP, findLadderById,
+  ladderClimbRate, ladderVolumeAt, ladderWantsLeave, ladderWantsMount,
+} from './ladders.js';
 
 export const PLAYER_RADIUS = 0.30;
 export const PLAYER_BODY_RADIUS = 0.35;
@@ -20,8 +26,14 @@ export const SV_STOPSPEED = 100 * .0254;
 export const SV_ACCELERATE = 5.5;
 export const SV_AIRACCELERATE = 12.0;
 export const SV_AIR_WISHSPEED_CAP = 30 * .0254;
+// Several static maps can be resident at once, one collision world per map id.
+// `world` stays the name of the *active* world so the many internal references
+// below are untouched; a room selects its map with activateWorld().
+export const DEFAULT_WORLD_KEY = 'de_dust2';
+const worlds = new Map();
 let world = null;
 let worldBounds = new Box3();
+let currentWorldKey = null;
 const axis = new Vector3();
 const motion = new Vector3();
 const ray = new Ray();
@@ -64,21 +76,57 @@ class MapCollision {
   }
 }
 
-export function initPhysics(positions, surfaceMaterials = null) {
+export function initPhysics(positions, surfaceMaterials = null, key = DEFAULT_WORLD_KEY, ladders = null, groundPatches = null) {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
   geometry.computeBoundingBox();
-  worldBounds.copy(geometry.boundingBox);
-  world?.geometry?.dispose();
-  world = new MapCollision(geometry);
-  world.surfaceMaterials = surfaceMaterials;
-  return world;
+  const entry = new MapCollision(geometry);
+  entry.surfaceMaterials = surfaceMaterials;
+  entry.ladders = Array.isArray(ladders) ? ladders : [];
+  entry.groundPatches = Array.isArray(groundPatches) ? groundPatches : [];
+  entry.bounds = geometry.boundingBox.clone();
+  // Re-initialising a key replaces that map's world and frees the old geometry.
+  worlds.get(key)?.geometry?.dispose();
+  worlds.set(key, entry);
+  // Preserve the historical single-world behaviour: the most recent init is
+  // active unless a room has explicitly selected another world since.
+  if (currentWorldKey === null || key === currentWorldKey || !worlds.has(currentWorldKey)) activateWorld(key);
+  return entry;
+}
+
+/** Make `key`'s collision world the one every raycast/step query reads. */
+export function activateWorld(key) {
+  const entry = worlds.get(key);
+  if (!entry) return false;
+  currentWorldKey = key;
+  world = entry;
+  worldBounds.copy(entry.bounds);
+  return true;
+}
+
+export function hasWorld(key) { return worlds.has(key); }
+export function getCurrentWorldKey() { return currentWorldKey; }
+export function loadedWorldKeys() { return [...worlds.keys()]; }
+/** Ladder volumes of the active map; empty when the map has none (Dust II). */
+export function activeLadders() { return world?.ladders || []; }
+
+/** Unload a map's world (room teardown, map uninstall, test isolation). */
+export function dropWorld(key) {
+  if (!worlds.has(key)) return false;
+  const entry = worlds.get(key);
+  worlds.delete(key);
+  entry.geometry?.dispose();
+  if (currentWorldKey === key) {
+    currentWorldKey = null; world = null; worldBounds.makeEmpty();
+    if (worlds.has(DEFAULT_WORLD_KEY)) activateWorld(DEFAULT_WORLD_KEY);
+  }
+  return true;
 }
 
 export function createPlayerState(spawn = {}) {
   return { x:spawn.x||0, y:spawn.y||0, z:spawn.z||0, vx:0,vy:0,vz:0,
     yaw:spawn.yaw||0,pitch:0,grounded:false,crouch:false,height:STAND_HEIGHT,
-    lastJump:false,lastJumpId:0,jumpBufferRemaining:0,stepDistance:0 };
+    lastJump:false,lastJumpId:0,jumpBufferRemaining:0,stepDistance:0,onLadder:false };
 }
 
 export function hullFor(p, height=p.crouch?CROUCH_HEIGHT:STAND_HEIGHT) {
@@ -115,9 +163,15 @@ export function floorHeight(x,z,fromY=80,maxDistance=200) {
 }
 
 export function getGroundMaterial(x, y, z) {
-  // Dust 2 Pit area has sand/dirt ground
-  if (x > 22 && z > -18 && y < -1.5) return 'sand';
   if (!world) return 'concrete';
+  // Some floors read as sand or dirt in the map source but carry no material id,
+  // so a map declares them as AABB patches. Keeping them per-world is what stops
+  // one map's patch from claiming another map's ground: these coordinates are
+  // Dust II's Pit, and Mirage has walkable space in the same box.
+  for (const patch of world.groundPatches || []) {
+    if (x > patch.min.x && x < patch.max.x && y < patch.max.y
+      && z > patch.min.z && z < patch.max.z) return patch.material;
+  }
   const hits = raycastWorldSurfaces({ x, y: y + 0.15, z }, { x: 0, y: -1, z: 0 }, 0.6);
   if (!hits.length) return 'concrete';
   const matId = hits[0].material || 0;
@@ -186,6 +240,144 @@ function updateCrouch(p,wanted){
   p.y=y;p.crouch=Boolean(wanted);p.height=newHeight;
 }
 
+// --- Ladder movement -------------------------------------------------------
+// A ladder is an invisible volume, not geometry. While mounted the player rides
+// a rail: horizontal position freezes, only Y moves, and gravity, stepping and
+// hull resolution all switch off. Every value below derives from (state, input,
+// volume), so the client's prediction and the server agree without extra work.
+function ladderWishDirection(input,yaw){
+  const forward=Math.max(-1,Math.min(1,Number(input.forward)||0));
+  const right=Math.max(-1,Math.min(1,Number(input.right)||0));
+  const mag=Math.hypot(forward,right);
+  if(mag<=0)return null;
+  return {x:(-Math.sin(yaw)*forward+Math.cos(yaw)*right)/mag,
+          z:(-Math.cos(yaw)*forward-Math.sin(yaw)*right)/mag};
+}
+
+function ladderDetach(p){p.onLadder=false;p.ladderId=null;}
+
+/** Horizontal wish direction from the strafe axis alone. */
+function ladderStrafeDirection(input,yaw){
+  const right=Math.max(-1,Math.min(1,Number(input.right)||0));
+  if(!right)return null;
+  return {x:Math.cos(yaw)*right,z:-Math.sin(yaw)*right};
+}
+
+/**
+ * Where a player stands after climbing out of one end of a ladder. A ladder
+ * shaft is a hole in the floor it opens onto, so sweeping straight down from the
+ * shaft usually finds only the shaft's own bottom or the floor the climb started
+ * from. CS2 ladders emerge beside their shaft rather than through it, so probe
+ * outward for the nearest floor that both sits at the level in question and fits
+ * the player's hull. Returns null when the ladder opens into mid-air, leaving
+ * the player holding on until there is somewhere to step.
+ *
+ * Both ends need this: the top obviously, and the bottom because a shaft that
+ * ends over a void would otherwise drop the climber out of the world. `slack`
+ * is how far below the level a floor may sit and still count as the landing.
+ */
+function ladderLanding(p,ladder,level,slack){
+  const direct=sweepDown(hullFor(p,p.height),LADDER_LEDGE_SWEEP);
+  if(direct&&direct.min.y<=level+0.02&&direct.min.y>level-slack){
+    return {x:(direct.min.x+direct.max.x)/2,y:direct.min.y,z:(direct.min.z+direct.max.z)/2};
+  }
+  const tanX=Math.cos(ladder.yaw),tanZ=-Math.sin(ladder.yaw);
+  const norX=-Math.sin(ladder.yaw),norZ=-Math.cos(ladder.yaw);
+  for(let radius=0.25;radius<=LADDER_LEDGE_REACH;radius+=0.15){
+    for(let a=0;a<12;a++){
+      const angle=a/12*Math.PI*2;
+      const x=ladder.x+(tanX*Math.cos(angle)+norX*Math.sin(angle))*radius;
+      const z=ladder.z+(tanZ*Math.cos(angle)+norZ*Math.sin(angle))*radius;
+      // Start just above the level so only a floor at the end of the climb is
+      // reachable — the floor at the other end sits far further away.
+      const floor=floorHeight(x,z,level+0.05,LADDER_LEDGE_REACH);
+      if(floor===null||floor>level+0.02||floor<level-slack)continue;
+      // The floor has to fit a standing player; one inside a wall does not.
+      if(world?.hullIntersect(hullFor({x,y:floor+0.06,z},p.height)))continue;
+      return {x,y:floor,z};
+    }
+  }
+  return null;
+}
+
+function ladderJumpOff(p,ladder){
+  p.vy=JUMP_SPEED*LADDER_JUMP_SPEED;
+  p.vx=-Math.sin(ladder.yaw)*LADDER_JUMP_PUSH;
+  p.vz=-Math.cos(ladder.yaw)*LADDER_JUMP_PUSH;
+  ladderDetach(p);
+}
+
+/** True when the ladder took over this tick, so stepPlayer returns immediately. */
+function ladderMove(p,input,dt,jumpPressed){
+  const ladders=world?.ladders;
+  if(!ladders||!ladders.length){if(p.onLadder)ladderDetach(p);return false;}
+  const held=p.onLadder?findLadderById(ladders,p.ladderId):null;
+  const direction=ladderWishDirection(input,p.yaw);
+  // Once mounted the forward axis is the throttle and the strafe axis is the way
+  // off, so only the strafe can step you off - walking "backwards" would fight
+  // the descend key and drop people who merely look away from the ladder.
+  const side=ladderStrafeDirection(input,p.yaw);
+  if(held){
+    // Pushing cleanly away steps off; losing the volume is a safety net.
+    if(ladderWantsLeave(held,side)||!ladderVolumeAt(ladders,p.x,p.y,p.z)){ladderDetach(p);return false;}
+    return ladderClimb(p,held,dt,jumpPressed,ladderClimbRate(input.forward));
+  }
+  if(!direction)return false;
+  const grab=ladderVolumeAt(ladders,p.x,p.y,p.z,LADDER_GRAB_MARGIN);
+  if(!grab||!ladderWantsMount(grab,direction))return false;
+  // Align to the ladder before holding it. The grab margin deliberately lets a
+  // player reach a ladder they are not flush against, but the held check below
+  // tests the strict volume, so leaving them off-axis would drop them straight
+  // back out again — most of the approaches that should work did exactly that.
+  p.x=grab.x;p.z=grab.z;
+  // A ladder's `bottom` is the floor you grab it on, but the floor a player is
+  // standing on can sit a few millimetres below it — enough to fail the strict
+  // volume test on the next tick and drop them straight back off. Clamp into
+  // the span instead, so a grab is a grab.
+  p.y=Math.max(Number(grab.bottom)||0,Math.min(Number(grab.top)||0,p.y));
+  p.onLadder=true;p.ladderId=grab.id;
+  p.vx=0;p.vz=0;
+  return ladderClimb(p,grab,dt,jumpPressed,ladderClimbRate(input.forward));
+}
+
+function ladderClimb(p,ladder,dt,jumpPressed,rate){
+  const bottom=Number(ladder.bottom)||0,top=Number(ladder.top)||0;
+  const substeps=Math.max(2,Math.ceil(dt*120)),h=dt/substeps;
+  for(let i=0;i<substeps;i++){
+    // Jump only on the tick it was pressed, not once per substep.
+    if(jumpPressed&&i===0){ladderJumpOff(p,ladder);p.jumpBufferRemaining=0;return true;}
+    if(rate!==0){
+      const speed=rate>0?LADDER_CLIMB_SPEED:LADDER_DESCENT_SPEED;
+      p.y=Math.max(bottom,Math.min(top,p.y+rate*speed*h));
+    }
+    // Bottom: put the climber on the floor the ladder starts from. A shaft can
+    // end over a void, so this is a landing search rather than a plain release.
+    if(rate<0&&p.y<=bottom+LADDER_SNAP){
+      const support=ladderLanding(p,ladder,bottom,LADDER_BASE_TOLERANCE);
+      if(support){
+        p.x=support.x;p.y=support.y;p.z=support.z;
+        p.vx=0;p.vy=0;p.vz=0;p.grounded=true;
+        ladderDetach(p);
+        return true;
+      }
+      ladderDetach(p);p.grounded=false;return true;
+    }
+    // Top: step onto the ledge the ladder opens onto, when one is in reach.
+    if(rate>0&&p.y>=top-LADDER_SNAP){
+      const support=ladderLanding(p,ladder,top,LADDER_LEDGE_SWEEP);
+      if(support){
+        p.x=support.x;p.y=support.y;p.z=support.z;
+        p.vy=0;p.grounded=true;
+        ladderDetach(p);
+        return true;
+      }
+    }
+  }
+  p.vx=0;p.vz=0;p.vy=0;p.grounded=false;
+  p.outOfWorld=p.y<worldBounds.min.y-12||p.x<worldBounds.min.x-20||p.x>worldBounds.max.x+20||p.z<worldBounds.min.z-20||p.z>worldBounds.max.z-20;
+  return true;
+}
+
 export function stepPlayer(p,input={},dt=1/60) {
   if(!world) return p;
   dt=Math.min(.05,Math.max(.001,dt));
@@ -201,6 +393,7 @@ export function stepPlayer(p,input={},dt=1/60) {
   const newId=jumpId!==null&&jumpId>(p.lastJumpId||0);
   if(newId)p.lastJumpId=jumpId;
   if(newId||(input.jump&&!p.lastJump))p.jumpBufferRemaining=JUMP_BUFFER_TIME;
+  const jumpPressed=newId||(input.jump&&!p.lastJump);
   p.lastJump=Boolean(input.jump);
   p.jumpBufferRemaining=Math.max(0,p.jumpBufferRemaining||0);
   let jumped=false;
@@ -211,6 +404,8 @@ export function stepPlayer(p,input={},dt=1/60) {
   tryJump();
   updateCrouch(p,input.crouch);
   p.height=p.crouch?CROUCH_HEIGHT:STAND_HEIGHT;
+  // Ladders take over the whole tick: no gravity, stepping or hull resolution.
+  if(world?.ladders?.length&&ladderMove(p,input,dt,jumpPressed))return p;
   if(p.grounded&&!jumped){
     const speed=Math.hypot(p.vx,p.vz);
     if(speed<.00254){p.vx=0;p.vz=0;}

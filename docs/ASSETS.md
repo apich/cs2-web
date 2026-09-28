@@ -43,10 +43,11 @@ node scripts/fetch-assets.mjs --base-url https://your-host.example/dust2/
 
 | 资源 | 来源与归属 | 本项目处理 |
 | --- | --- | --- |
-| Dust II 渲染地图、原始纹理 | 本地合法安装的 Counter-Strike 2；Valve | 使用 [Source 2 Viewer](https://s2v.app/) 导出原几何和 UV，转换为浏览器 glTF、Meshopt 与 WebP |
+| Dust II / Mirage 渲染地图、原始纹理 | 本地合法安装的 Counter-Strike 2；Valve | 使用 [Source 2 Viewer](https://s2v.app/) 导出原几何和 UV，转换为浏览器 glTF、Meshopt 与 WebP。Mirage 与 Dust II 走同一条管线（`scripts/map-fetch.py --map` 起），外加梯子体积提取 |
+| 梯子攀爬体积 | 本地 CS2 中 `materials/tools/toolsinvisibleladder*.vmat` 标记的不可见刷子；Valve | 由 `scripts/extract-map-ladders.mjs` 在贴图管线删除 tools 图元之前收割，并按导航网格相邻性剪掉误报 |
 | 地图碰撞与导航资料 | [Awpy 固定版本 2000905](https://github.com/pnxenopoulos/awpy-data/releases/tag/2000905)；源游戏内容属于 Valve | 转换为共享导航和客户端/服务端碰撞数据 |
 | 武器、皮肤图案、手臂、骨骼动作和原始枪声 | 本地安装的 CS2；Valve 及原 Workshop 创作者 | 按原模型 UV 烘焙网页 PBR 材质，打包 GLB，音频转为浏览器 MP3 |
-| 地图背景、图标与雷达图 | [MurkyYT/cs2-map-icons 固定提交](https://github.com/MurkyYT/cs2-map-icons/tree/ca2012aec9983cf4b1fd7886ffc1808763a787c3)；原图属于 Valve | 使用地图图库中的对应 Dust II 文件 |
+| 地图背景、图标与雷达图 | [MurkyYT/cs2-map-icons 固定提交](https://github.com/MurkyYT/cs2-map-icons/tree/ca2012aec9983cf4b1fd7886ffc1808763a787c3)；原图属于 Valve | 使用地图图库中各地图对应的文件（Dust II、Mirage） |
 | SWAT 与 Hoodie 角色、动作 | [Quaternius Ultimate Modular Characters](https://quaternius.com/packs/ultimatemodularcharacters.html)，CC0 | glTF 重打包为内嵌纹理的 GLB，保留骨骼动作 |
 | 脚步与部分环境撞击声 | [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds)，CC0 | 筛选运行时片段；与 Valve 原始枪声分别记录 |
 

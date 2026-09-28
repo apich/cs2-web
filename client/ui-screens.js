@@ -176,7 +176,37 @@ function tick(now) {
   if (pctEl) pctEl.textContent = `${Math.floor(visualPercent)}%`;
 }
 
-export function startLoadingView() {
+/**
+ * Name the map on the loading screen. Called once the server has drawn one from
+ * the player's pool, so nobody reads "DUST II" while a Mirage room loads.
+ */
+export function setLoadingMap(map) {
+  if (!map) return;
+  const zh = map.nameZh || map.name;
+  const nameEl = $('loading-map-name');
+  if (nameEl) nameEl.textContent = `${map.name} · ${zh}`;
+  const title = document.querySelector('.loading-map-title h1');
+  if (title) title.textContent = map.name;
+  const sub = document.querySelector('.loading-map-title .loading-location');
+  if (sub) sub.textContent = zh;
+  const line = document.querySelector('.loading-map-title p');
+  if (line && map.tagline) line.innerHTML = map.tagline;
+  const radar = document.querySelector('.loading-tactical img');
+  const radarUrl = map.assets?.radarImage;
+  if (radar && radarUrl) radar.src = new URL(radarUrl.replace(/^\//, ''), document.baseURI).href;
+}
+
+/** Point the lobby/loading/mode-card backdrops at this map's own image. */
+export function setMapBackdrop(map) {
+  const url = map?.backdrop;
+  document.documentElement.style.setProperty('--map-backdrop', url ? `url('${url}')` : 'none');
+  for (const selector of ['.menu-photo', '.loading-image']) {
+    const el = document.querySelector(selector);
+    if (el) el.hidden = !url;
+  }
+}
+
+export function startLoadingView(map = null) {
   currentGameState = GameState.LOADING;
   fillEl = $('load-fill');
   pctEl = $('load-percent');
@@ -187,8 +217,7 @@ export function startLoadingView() {
   if (screen) { screen.classList.remove('leave'); screen.style.opacity = ''; }
   cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(tick);
-  const mapEl = $('loading-map-name');
-  if (mapEl) mapEl.textContent = 'DUST II · 炙热沙城 II';
+  setLoadingMap(map);
   const modeEl = $('loading-map-mode');
   if (modeEl && $('mode')) modeEl.textContent = $('mode').value === 'defuse' ? '爆破模式' : '团队死斗';
   startMessages();

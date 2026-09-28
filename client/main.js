@@ -28,8 +28,9 @@ import { mountOfflineMenu } from './offline-menu.js';
 import * as THREE from 'three';
 import { createWeaponLighting } from './weapon-lighting.js';
 import { createMapScene } from './map-scene.js';
-import { initPhysics, createPlayerState, stepPlayer, raycastWorld, resolvePlayerAgainstOthers } from '../shared/physics.js';
-import { MAP } from '../shared/map-data.js';
+import { initPhysics, activateWorld, getCurrentWorldKey, createPlayerState, stepPlayer, raycastWorld, resolvePlayerAgainstOthers } from '../shared/physics.js';
+import { getMap, resolveMapId, DEFAULT_MAP } from '../shared/maps/registry.js';
+import { selectedMapPool, mountMapPool } from './map-select.js';
 import { getWeapon, canTeamUseWeapon, defaultPrimaryForTeam, weaponSpeedScale } from '../shared/weapons.js';
 import { UTILITY_IDS, EQUIPMENT } from '../shared/equipment.js';
 import { UtilityEffects } from './utility-effects.js';
@@ -46,7 +47,7 @@ import {MovementPrediction} from './movement-prediction.js';
 import {movementState} from '../shared/movement-commands.js';
 import { HUD } from './hud.js';
 import { downloadAssets, releaseDownloads } from './loading.js';
-import { initLobbyUI, showHome, showModeSelect, hideModeSelect, startLoadingView, setLoadingTarget, stopLoadingView, completeLoading, getFaction } from './ui-screens.js';
+import { initLobbyUI, showHome, showModeSelect, hideModeSelect, startLoadingView, setLoadingMap, setMapBackdrop, setLoadingTarget, stopLoadingView, completeLoading, getFaction } from './ui-screens.js';
 import { mountLobbyShowcase } from './lobby-showcase.js';
 import { connectionTarget } from './connection-target.js';
 import {knifeInterval} from '../shared/melee.js';
@@ -99,9 +100,75 @@ let clientDuckProgress=0,clientDuckAmount=0,lastDuckAmount=0,spectatorDuckProgre
 let fixed=0,networkAcc=0,hudAcc=0,pingAcc=0,lastTime=performance.now(),fps=60,ping=0,lastStep=0;
 let lastSnapshotAlive=false,previousHealth=100,inviteBase=connection.inviteBase;
 let primary='ak47',primaryExplicit=false,downloadAbort=null,pendingJoin=false;
+let audioReadyPromise=null;
 const handledEvents=new Set();
 let previousWeapon=null,previousReload=0;
-let modelsReady=false,mapResultCache=null;
+let modelsReady=false,baseAssetsReady=false,mapResultCache=null,currentMapId=DEFAULT_MAP,mapPool=[DEFAULT_MAP];
+// A second map means a second scene graph. Cache results per map and free the
+// one being replaced, or two large maps sit in VRAM at once. A cached map is
+// kept detached from the shared scene: two full map geometries at the same
+// world origin z-fight into full-screen flicker, so exactly one map's group and
+// lights may be attached at any time.
+const mapResults=new Map();
+/** Attach or detach everything a map result contributes to the shared scene. */
+function setMapResultVisible(result,visible){
+  const objects=[result.group,...(result.lights||[])];
+  if(!visible){for(const object of objects)object.removeFromParent();return;}
+  scene.add(...objects);
+  // Cache hits never re-run createMapScene, so restore the scene-level sky/fog
+  // the map was built with or the previous map's environment would linger.
+  const lighting=result.mapData.lighting;
+  scene.background=result.sky;
+  scene.backgroundIntensity=lighting.backgroundIntensity;
+  scene.backgroundRotation.y=lighting.backgroundRotationY;
+  scene.fog=result.fog;
+}
+/** Show one map result and keep every other cached map detached. */
+function showMapResult(result){
+  for(const other of mapResults.values())if(other!==result)setMapResultVisible(other,false);
+  setMapResultVisible(result,true);mapResultCache=result;
+}
+/** Drop a map's scene objects and release its GPU memory. */
+function disposeMapResult(result){
+  if(!result?.group)return;
+  setMapResultVisible(result,false);
+  // Collect first: removing meshes mid-traverse shifts children and skips some.
+  const meshes=[];
+  result.group.traverse(object=>{if(object.isMesh)meshes.push(object);});
+  for(const object of meshes){
+    object.geometry?.dispose();
+    for(const material of [].concat(object.material||[])){
+      for(const value of Object.values(material||{}))if(value?.isTexture)value.dispose();
+      material?.dispose();
+    }
+  }
+  for(const light of result.lights||[]){
+    light.shadow?.dispose?.();
+    if(light.shadow)light.shadow.map=null;
+    light.dispose?.();
+  }
+}
+/** Load a map's render group, reusing the cached one and evicting the LRU. */
+function loadMapResult(mapId){
+  const cached=mapResults.get(mapId);
+  if(cached){showMapResult(cached);return Promise.resolve(cached);}
+  // Keep at most two maps in memory: the incoming map plus one previous, so a
+  // rematch is instant without two large maps in VRAM at once.
+  while(mapResults.size>=2){
+    let victim=null;
+    for(const key of mapResults.keys()){
+      if(key!==mapId&&key!==currentMapId){victim=key;break;}
+    }
+    if(!victim)for(const key of mapResults.keys())if(key!==mapId){victim=key;break;}
+    if(!victim)break;
+    disposeMapResult(mapResults.get(victim));mapResults.delete(victim);
+  }
+  currentMapId=mapId;
+  return createMapScene(scene,{onProgress:message=>{$('load-label').textContent=message;},mapId})
+    .then(result=>{mapResults.set(mapId,result);showMapResult(result);return result;});
+}
+/** The player's chosen map pool; one map means that map is always used. */
+function mapPoolSelections(){return selectedMapPool();}
 let serverAmmo=0,pendingShots=[],lastSentInputSeq=-1,shotId=0,lastShotEvidence=null;
 let storedSettings=preferences.readJSON('dust2.cs-settings.v1');
 let video=normalizeVideo(storedSettings),viewport=viewportSize(innerWidth,innerHeight,video);
@@ -153,6 +220,7 @@ const agentsUI=new AgentMenu({onEquip:async agent=>{
 }});
 const roomMenu=new RoomMenu({send,invite,onClose:resume=>{clearGameInput();if(resume)resumeGame();else $('pause-menu').hidden=false;}});
 const offlineMenu=mountOfflineMenu();
+const mapPoolUI=mountMapPool();
 // Esc 弹层登记。优先级越大越先被关闭；对局中关掉设置 / 装备 / 探员后直接回到游戏，首页只关弹层。
 const matchLayerActive=()=>connected&&snapshot?.match?.status!=='ended';
 function closeMenuOrResume(hide){if(matchLayerActive())resumeGame();else hide();}
@@ -185,7 +253,7 @@ function downloadProgress(p){
   $('load-bytes').textContent=`已载入 ${mb(p.bytes)} / ${mb(p.total)} MB`;
   $('load-files').textContent=`${p.complete} / ${p.count} 个文件`;
   $('load-rate').textContent=p.rate>0?`资源读取 ${mb(p.rate)} MB/s`:'';
-  const labels={map:'下载 Dust II 地图与原版材质',collision:'载入地图碰撞',characters:'载入对战角色',weapons:'下载武器、皮肤与手部动作'};
+  const labels={map:`下载 ${getMap(currentMapId).name} 地图与原版材质`,collision:'载入地图碰撞',characters:'载入对战角色',weapons:'下载武器、皮肤与手部动作'};
   $('load-label').textContent=labels[p.current]||'准备资源下载';
 }
 function loadError(error){
@@ -264,19 +332,32 @@ function controlAction(action,{pressed,event,source}){
 }
 
 
-async function loadGame(audioReady){
-  if(loaded){await audioReady;return;}
-  setLoadStage('download','下载地图与武器资源');
-  downloadAbort=new AbortController();
-  await downloadAssets({signal:downloadAbort.signal,onProgress:downloadProgress});
-  downloadAbort=null;
+async function loadGame(audioReady,mapId=currentMapId){
+  // The drawn map is known before anything is fetched, so adopt it here: the
+  // progress labels and the scene both key off `currentMapId`, and a rematch can
+  // land on a different map than the last one.
+  currentMapId=mapId;
+  // `loaded` means the shared base assets are resident; the scene is always
+  // (re)built because a rematch can land on a different map than the last one.
+  // `audioReady` is deliberately not awaited here: AudioContext.resume() can stay
+  // pending forever without a user gesture, and audio must never gate the map.
+  if(!baseAssetsReady){
+    setLoadStage('download','下载地图与武器资源');
+    downloadAbort=new AbortController();
+    await downloadAssets({signal:downloadAbort.signal,onProgress:downloadProgress});
+    downloadAbort=null;
+    baseAssetsReady=true;
+  }
   setLoadStage('scene',mobileDevice()?'准备手机材质与骨骼动画':'解码原版材质与骨骼动画');await paint();
+  // Audio may stay pending forever without a user gesture. Start it, but keep it
+  // out of the set below: allSettled waits for every promise to settle, so an
+  // unresolved AudioContext would hang the map load for good.
+  Promise.resolve(audioReady).catch(()=>{});
   // Wait for every parser before opening Retry. Successful heavy work is kept
   // so a failed audio/model request cannot append a second map on the next try.
   const tasks=await Promise.allSettled([
     modelsReady?Promise.resolve():loadModels().then(()=>{modelsReady=true;}),
-    mapResultCache?Promise.resolve(mapResultCache):createMapScene(scene,{onProgress:message=>{$('load-label').textContent=message;}}).then(result=>{mapResultCache=result;return result;}),
-    audioReady,
+    loadMapResult(mapId),
     loadAgent(agentsUI.loadout[$('team').value==='CT'?'CT':'T']),
     ...[primary,$('team').value==='CT'?'usp':'pistol','knife'].map(id=>skins.loadout[id]).filter(Boolean).map(id=>loadSkin(id)),
   ]);
@@ -284,26 +365,46 @@ async function loadGame(audioReady){
   if(failure)throw failure.reason;
   const mapResult=mapResultCache;
   $('load-label').textContent='建立碰撞与武器动作';await paint();
-  initPhysics(mapResult.positions, mapResult.surfaceMaterials);viewWeapon ||= new ViewWeapon(gunCamera);applyQuality();
+  // initPhysics auto-activates only when no other world was ever active; a map
+  // switch must re-bind the collision world explicitly or client prediction keeps
+  // stepping the previous map's floors and the camera shakes vertically.
+  initPhysics(mapResult.positions, mapResult.surfaceMaterials, currentMapId, getMap(currentMapId).ladders||[], getMap(currentMapId).groundPatches||[]);activateWorld(currentMapId);viewWeapon ||= new ViewWeapon(gunCamera);applyQuality();
   $('load-label').textContent='预热场景与武器着色器';await paint();
-  const spawn=MAP.spawns[$('team').value==='CT'?'CT':'T'][0];camera.position.set(spawn.x,spawn.y+1.62,spawn.z);
+  const spawn=getMap(currentMapId).spawns[$('team').value==='CT'?'CT':'T'][0];camera.position.set(spawn.x,spawn.y+1.62,spawn.z);
   let shaderTimeout;
   try{await Promise.race([(async()=>{await renderer.compileAsync(scene,camera);await renderer.compileAsync(gunScene,gunCamera);})(),new Promise((_,reject)=>{shaderTimeout=setTimeout(()=>reject(new Error('显卡准备超时，请关闭其他应用后重试')),60000);})]);}finally{clearTimeout(shaderTimeout);}
-  loaded=true;releaseDownloads();
+  loaded=true;baseAssetsReady=true;releaseDownloads();
 }
 
 async function start(joinExisting=false){
   if(touchControls?.enabled)mobileShell?.enter();
   if(loading)return;loading=true;pendingJoin=joinExisting;
-  $('start-button').disabled=true;$('join-button').disabled=true;$('loading-screen').hidden=false;startLoadingView();
+  $('start-button').disabled=true;$('join-button').disabled=true;$('loading-screen').hidden=false;
+  // A one-map pool is guaranteed, so the loading screen can name it from the
+  // start; a wider pool stays on the default until the server draws one.
+  const pool=mapPoolSelections();
+  const openingMap=getMap(pool.length===1?pool[0]:DEFAULT_MAP);
+  setMapBackdrop(openingMap);startLoadingView(openingMap);
   $('loading-error').hidden=true;$('loading-spinner').hidden=false;
   $('loading-mode').textContent=$('mode').value==='defuse'?'经典爆破 · 回合制':'团队死斗 · 自动重生';
   $('loading-team').textContent={T:'进攻方 T',CT:'防守方 CT',auto:'自动平衡阵营'}[$('team').value];
   const weapon=getWeapon(primary);$('loading-weapon').textContent=`${weapon.name} · ${getSkin(skins.loadout[primary])?.name||weapon.skin}`;
   $('menu-status').textContent='正在加载战场。资源会缓存，之后进入更快。';
   setLoadStage(loaded?'connect':'download',loaded?'连接对战房间':'准备资源清单');
-  const audioReady=audio.start();audioReady.catch(()=>{});
-  try{await loadGame(audioReady);setLoadStage('connect','建立多人对战连接');connect(joinExisting);}
+  audioReadyPromise=audio.start();audioReadyPromise.catch(()=>{});
+  // Order matters here: the shared assets (collision, weapons, models) have to be
+  // resident before anything can be built, and the *scene* for the room's map can
+  // only be built once the server names that map. So download first, connect
+  // second, and let `welcome` load the drawn map's scene.
+  try{
+    if(!loaded){
+      setLoadStage('download','下载地图与武器资源');
+      downloadAbort=new AbortController();
+      await downloadAssets({signal:downloadAbort.signal,onProgress:downloadProgress});
+      downloadAbort=null;
+    }
+    setLoadStage('connect','匹配地图与对战房间');connect(joinExisting);
+  }
   catch(e){downloadAbort=null;if(e.name==='AbortError'){$('loading-screen').hidden=true;stopLoadingView();loading=false;$('start-button').disabled=false;$('join-button').disabled=false;$('menu-status').textContent='已取消加载。';}else{console.error(e);loadError(e);}}
 }
 function connect(joinExisting){
@@ -311,18 +412,31 @@ function connect(joinExisting){
   const url=connection.socketURL;
   socket=new WebSocket(url);const activeSocket=socket;
   const timeout=setTimeout(()=>{if(!connected&&socket===activeSocket){$('menu-status').textContent='服务器连接超时，请确认游戏服务已启动。';socket.close();}},15000);
-  socket.addEventListener('open',()=>{if(socket!==activeSocket)return;const name=$('nickname').value.trim()||'Player';preferences.setItem('dust2.name',name);activeSocket.send(JSON.stringify({type:'join',existing:joinExisting,name,movementProtocol:1,room:joinExisting?$('room-code').value.trim().toUpperCase():undefined,mode:$('mode').value,team:$('team').value,primary,skins:skins.loadout,agents:agentsUI.loadout,bots:Number($('bots').value)}));});
+  socket.addEventListener('open',()=>{if(socket!==activeSocket)return;const name=$('nickname').value.trim()||'Player';preferences.setItem('dust2.name',name);activeSocket.send(JSON.stringify({type:'join',existing:joinExisting,name,movementProtocol:1,room:joinExisting?$('room-code').value.trim().toUpperCase():undefined,mode:$('mode').value,team:$('team').value,primary,skins:skins.loadout,agents:agentsUI.loadout,bots:Number($('bots').value),maps:mapPoolSelections()}));});
   socket.addEventListener('message',e=>{if(socket!==activeSocket)return;let data;try{data=JSON.parse(e.data);}catch{return;}
     if(data.type==='welcome'){
+      // The server answered, so the connect watchdog has done its job. Building
+      // the scene can outlast it on a cold cache, and letting it fire would drop
+      // a room the player is already in.
+      clearTimeout(timeout);
+      // The room's map is the server's choice from the player's pool; load that
+      // scene before the HUD appears, so nobody spawns on the wrong map. The
+      // loading screen follows the drawn map for the same reason.
       preferences.setItem('dust2.last-session',JSON.stringify({room:data.room,mode:data.mode,at:Date.now()}));
-      movementSupported=data.movementProtocol===1;movementPrediction.reset();fixed=0;networkAcc=0;
-      clearTimeout(timeout);displayedHostBots=null;matchPresentation.reset();connectionId=myId=data.id;room=data.room;mode=data.mode;connected=true;seq=0;shotId=0;lastShotEvidence=null;remotePlayers.clear();frameSamples.length=0;jumpId=0;reloadId=0;resetScope();clearGameInput();lastSentInputSeq=-1;pendingShots=[];self=null;lastSnapshotAlive=false;previousHealth=100;handledEvents.clear();previousWeapon=null;previousReload=0;hud.reset();matchView.reset();spectating=null;diagnostics.event('connected');
+      movementSupported=data.movementProtocol===1;mapPool=Array.isArray(data.maps)&&data.maps.length?data.maps:[DEFAULT_MAP];movementPrediction.reset();fixed=0;networkAcc=0;
+      const drawnMap=resolveMapId(data.map);
+      setLoadingMap(getMap(drawnMap));setMapBackdrop(getMap(drawnMap));
+      setLoadStage('download',`载入 ${getMap(drawnMap).name}`);
+      loadGame(audioReadyPromise||Promise.resolve(),drawnMap).then(()=>{
+      clearTimeout(timeout);displayedHostBots=null;matchPresentation.reset();connectionId=myId=data.id;room=data.room;mode=data.mode;connected=true;seq=0;shotId=0;lastShotEvidence=null;remotePlayers.clear();frameSamples.length=0;jumpId=0;reloadId=0;resetScope();clearGameInput();lastSentInputSeq=-1;pendingShots=[];self=null;lastSnapshotAlive=false;previousHealth=100;handledEvents.clear();previousWeapon=null;previousReload=0;hud.setMap(drawnMap);hud.reset();matchView.reset();spectating=null;diagnostics.event('connected');
       document.exitPointerLock?.();document.body.classList.remove('mouse-captured');completeLoading();
       $('menu').hidden=true;$('hud').hidden=false;document.body.classList.add('playing');$('pause-menu').hidden=false;roomMenu.open();
       $('room-label').textContent=room;$('board-room').textContent=`房间 ${room}`;$('room-code').value=room;
       const q=new URL(location.href);q.searchParams.set('room',room);history.replaceState(null,'',q);
       loading=false;$('start-button').disabled=false;$('join-button').disabled=false;
       hud.toast(`已加入 ${data.team} 阵营 · 点击继续进入战场`);
+      }).catch(e=>{console.error(e);loadError(e);});
+      return;
     } else if(data.type==='snapshot'){handleSnapshot(data);}
     else if(data.type==='agentEquipped'){if(pendingAgentEquip?.id===data.agent)pendingAgentEquip.resolve();hud.toast(`已装备 ${getAgent(data.agent)?.name||'探员'}`);}
     else if(data.type==='skinEquipped'){if(pendingSkinEquip?.skin===data.skin)pendingSkinEquip.resolve();hud.toast(`已装备 ${getSkin(data.skin)?.name||'新皮肤'}`);}
@@ -705,7 +819,7 @@ const recovery=document.createElement('div');recovery.id='graphics-recovery';rec
 $('reload-graphics').onclick=()=>location.reload();$('graphics-report').onclick=()=>diagnostics.download();
 canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();contextLost=true;diagnostics.event('webgl-context-lost',resourceMetrics());clearGameInput();mouseFire=false;resetScope();document.exitPointerLock?.();recovery.hidden=false;});
 canvas.addEventListener('webglcontextrestored',()=>{try{rebuildWeaponEnvironment();applyQuality();contextLost=false;diagnostics.event('webgl-context-restored');recovery.hidden=true;if(connected)$('pause-menu').hidden=false;}catch(error){diagnostics.event('graphics-recovery-failed',{message:String(error.message).slice(0,300)});}});
-window.__dust2={getDiagnostics:()=>diagnostics.report(),getStatus:()=>({mobileShell:mobileShell?.status(),touch:touchControls?{enabled:touchControls.enabled,active:touchControls.active,axes:{...touchControls.axes},pointers:touchControls.input.pointers.size,settings:touchControls.settings,throwMode:touchControls.throwMode}:null,inputState:{fire:controls.down('fire'),altFire:controls.down('altFire'),crouch:controls.down('crouch'),interact:controls.down('interact')},audio:{drawCount:audio.drawCount||0,lastDraw:audio.lastDraw,heavySwingCount:audio.heavySwingCount||0,lastKnife:audio.lastKnife,footsteps:footstepAudio.status()},viewModel:{id:viewWeapon?.id,skinId:viewWeapon?.skinId,waiting:viewWeapon?.waiting||false,visible:viewWeapon?.group.visible||false,action:viewWeapon?.active?.actionName},music:matchAudio.status(),loaded,connected,contextLost,spectatingId:spectating?.id||null,resources:resourceMetrics(),room,mode,myId,connectionId,fps:Math.round(fps),ping,player:self?{...self}:null,players:snapshot?.players||[],round:snapshot?.round,match:snapshot?.match,hostId:snapshot?.hostId,desiredBots:snapshot?.desiredBots,seats:snapshot?.seats,droppedWeapons:snapshot?.droppedWeapons||[],bomb:snapshot?.bomb,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,mapVersion:MAP.version,sky:scene.userData.sky,zoomLevel,zoomFov:zoomFov(),cameraFov:camera.fov,cameraPosition:{x:camera.position.x,y:camera.position.y,z:camera.position.z},cameraAim:{yaw:camera.rotation.y,pitch:camera.rotation.x},lastShot:lastShotEvidence,renderPlayers:remotePlayers.sample(performance.now()),viewTime:remotePlayers.viewTime,movement:movementPrediction.status(),settings:{sensitivity,zoomSensitivity,crosshair:crosshairSettings,quality,brightness,...video},bindings:controls.getBindings(),jumpId,reloadId,utilityId,agentLoadout:{...agentsUI.loadout},grenades:snapshot?.grenades||[],smokes:snapshot?.smokes||[],fires:snapshot?.fires||[],decoys:snapshot?.decoys||[],defuseKits:snapshot?.defuseKits||[]})};
+window.__dust2={getDiagnostics:()=>diagnostics.report(),getStatus:()=>({mobileShell:mobileShell?.status(),touch:touchControls?{enabled:touchControls.enabled,active:touchControls.active,axes:{...touchControls.axes},pointers:touchControls.input.pointers.size,settings:touchControls.settings,throwMode:touchControls.throwMode}:null,inputState:{fire:controls.down('fire'),altFire:controls.down('altFire'),crouch:controls.down('crouch'),interact:controls.down('interact')},audio:{drawCount:audio.drawCount||0,lastDraw:audio.lastDraw,heavySwingCount:audio.heavySwingCount||0,lastKnife:audio.lastKnife,footsteps:footstepAudio.status()},viewModel:{id:viewWeapon?.id,skinId:viewWeapon?.skinId,waiting:viewWeapon?.waiting||false,visible:viewWeapon?.group.visible||false,action:viewWeapon?.active?.actionName},music:matchAudio.status(),loaded,connected,contextLost,spectatingId:spectating?.id||null,resources:resourceMetrics(),room,mode,myId,connectionId,fps:Math.round(fps),ping,player:self?{...self}:null,players:snapshot?.players||[],round:snapshot?.round,match:snapshot?.match,hostId:snapshot?.hostId,desiredBots:snapshot?.desiredBots,seats:snapshot?.seats,droppedWeapons:snapshot?.droppedWeapons||[],bomb:snapshot?.bomb,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,mapVersion:getMap(currentMapId).version,worldKey:getCurrentWorldKey(),sky:scene.userData.sky,zoomLevel,zoomFov:zoomFov(),cameraFov:camera.fov,cameraPosition:{x:camera.position.x,y:camera.position.y,z:camera.position.z},cameraAim:{yaw:camera.rotation.y,pitch:camera.rotation.x},lastShot:lastShotEvidence,renderPlayers:remotePlayers.sample(performance.now()),viewTime:remotePlayers.viewTime,movement:movementPrediction.status(),settings:{sensitivity,zoomSensitivity,crosshair:crosshairSettings,quality,brightness,...video},bindings:controls.getBindings(),jumpId,reloadId,utilityId,agentLoadout:{...agentsUI.loadout},grenades:snapshot?.grenades||[],smokes:snapshot?.smokes||[],fires:snapshot?.fires||[],decoys:snapshot?.decoys||[],defuseKits:snapshot?.defuseKits||[]})};
 
 if (import.meta.hot) {
   import.meta.hot.accept([

@@ -6,7 +6,8 @@ import { WebSocket } from 'ws';
 import { startGameServer } from '../server/index.js';
 import { DEFAULT_SKINS, normalizeSkinLoadout } from '../shared/skins.js';
 import { WEAPONS } from '../shared/weapons.js';
-import { MAP } from '../shared/map-data.js';
+import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
+const MAP = getMap(DEFAULT_MAP);
 import { raycastWorld } from '../shared/physics.js';
 
 async function connect(port) {
