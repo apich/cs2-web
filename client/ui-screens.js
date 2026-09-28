@@ -68,6 +68,8 @@ export function setFaction(faction, animate = true) {
   });
   const nameEl = $('lobby-faction-name');
   if (nameEl) nameEl.textContent = `当前阵营 · ${FACTION_NAME[faction]}`;
+  const avatar = $('nameplate-avatar');
+  if (avatar) avatar.src = AGENT_PREVIEW[faction];
   new Image().src = AGENT_PREVIEW[faction === 'CT' ? 'T' : 'CT']; // 预载另一阵营立绘，切换不闪白
   swapCharacter(faction, animate && changed); // 首次初始化（changed=false）也需校正立绘 src
 }
@@ -96,10 +98,26 @@ function swapCharacter(faction, animate) {
   }, 320);
 }
 
+// ---- 视图切换：开始(大厅) / 武器装备 / 库存 / 商店 / 新闻 ----
+export function showView(name) {
+  document.querySelectorAll('.menu-view').forEach(v => {
+    const on = v.dataset.view === name;
+    v.classList.toggle('active', on);
+    v.hidden = !on;
+  });
+  // 大厅 3D 角色画布仅首页显示，避免其它视图透出
+  document.getElementById('menu')?.classList.toggle('on-home', name === 'home');
+  const navIdByView = { home: 'menu-play-tab', inventory: 'menu-inventory', loadout: 'menu-loadout', shop: 'menu-shop', news: 'menu-news' };
+  for (const [view, id] of Object.entries(navIdByView)) {
+    document.getElementById(id)?.classList.toggle('active', view === name);
+  }
+}
+
 // ---- 模式选择面板 ----
 export function showModeSelect() {
   if (currentGameState !== GameState.HOME && currentGameState !== GameState.MODE_SELECT) return;
   currentGameState = GameState.MODE_SELECT;
+  showView('home');
   const panel = $('mode-select');
   if (!panel) return;
   panel.hidden = false;
@@ -274,9 +292,9 @@ export function showHome() {
 
 // ---- 装配：模式卡 / 返回 / 进入 / 警匪按钮 ----
 export function initLobbyUI({ onStart, onFaction } = {}) {
-  // 桌面端房间设置面板（match-card）被视觉隐藏，把状态提示条挪到左侧信息栏底部保持可见；触屏端不移。
+  // 状态提示条位于对局面板底部（.play-panel-foot）；仅当不在面板内时才移入大厅信息栏。
   const menuStatus = $('menu-status');
-  if (menuStatus && window.matchMedia('(min-width:901px)').matches && !menuStatus.closest('.lobby-panel')) {
+  if (menuStatus && window.matchMedia('(min-width:901px)').matches && !menuStatus.closest('.play-panel') && !menuStatus.closest('.lobby-panel')) {
     document.querySelector('.lobby-panel')?.append(menuStatus);
   }
   selectedGameMode = $('mode')?.value === 'deathmatch' ? 'deathmatch' : 'defuse';

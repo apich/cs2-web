@@ -205,3 +205,164 @@ body.playing #hud{animation:hud-fade-in .45s ease-out both}
 @media(min-width:901px){.map-pool-compact{display:none}}
 @media(max-width:900px){.map-pool-showcase{display:none}}
 @media(max-width:900px){.map-pool-choice{padding:7px 9px;font-size:11px}.map-pool-choice .map-pool-badge{width:28px;height:28px;flex:0 0 28px}}
+/* ===== CS2 主菜单外壳：顶部导航 + 多视图 + 好友栏（plan.md 步骤 1–2） ===== */
+.menu-screen .menu-content.menu-shell{display:grid;grid-template-columns:minmax(0,1fr) 268px;grid-template-rows:minmax(0,1fr);gap:0;width:100%;max-width:none;padding:0;min-height:calc(100vh - 107px);align-items:stretch}
+.menu-screen .menu-views{position:relative;min-width:0;min-height:0}
+.menu-screen .menu-view{display:none;position:absolute;inset:0;padding:22px 1.5vw 10px 3vw}
+.menu-screen .menu-view.active{display:block}
+.menu-screen .view-home.active{display:grid;grid-template-columns:minmax(272px,320px) minmax(0,1fr);gap:2vw;align-items:stretch}
+/* 左侧活动列 */
+.menu-screen .promo-column{display:flex;flex-direction:column;gap:13px;justify-content:center;max-height:none;overflow:visible;padding:8px 0}
+.menu-screen .promo-card{position:relative;overflow:hidden;flex:0 0 auto;min-height:148px;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(15,22,26,.55);border:1px solid #ffffff22;border-radius:4px;cursor:pointer;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+.menu-screen .promo-card:hover{transform:translateY(-3px);border-color:#ffffff5c;box-shadow:0 12px 28px #0006}
+.menu-screen .promo-art{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.menu-screen .promo-rush .promo-art{background:linear-gradient(150deg,#c9c2ae 0%,#8e8779 55%,#5c574d 100%)}
+.menu-screen .promo-rush .promo-art-title{font:900 46px/1 Impact,'Arial Narrow',sans-serif;letter-spacing:6px;color:#1d1b17;text-shadow:2px 3px 0 #c9412f66, -2px -2px 0 #e8e2d440;transform:skewX(-8deg)}
+.menu-screen .promo-armory .promo-art{background:linear-gradient(160deg,#0e7a4d 0%,#0b5c3c 60%,#07422c 100%)}
+.menu-screen .promo-pass{font:700 15px/1 Arial;letter-spacing:3px;color:#c9f3dd;border:2px solid #c9f3ddaa;padding:10px 16px;transform:rotate(-6deg);background:#0a3d2b88}
+.menu-screen .promo-music .promo-art{background:linear-gradient(160deg,#d8d2c4 0%,#a89f8d 65%,#6f675a 100%);justify-content:flex-start;padding-left:14px}
+.menu-screen .promo-vinyl{width:86px;height:86px;border-radius:50%;background:radial-gradient(circle at center,#c9c2ae 0 18%,#151515 19% 100%);box-shadow:0 6px 18px #0007;position:relative}
+.menu-screen .promo-vinyl::after{content:'';position:absolute;left:50%;top:50%;width:14px;height:14px;border-radius:50%;background:#c85a2e;transform:translate(-50%,-50%)}
+.menu-screen .promo-body{position:relative;padding:11px 13px;background:linear-gradient(0deg,rgba(10,15,19,.92) 0%,rgba(10,15,19,.55) 75%,transparent 100%)}
+.menu-screen .promo-body b{display:block;font-size:13px;letter-spacing:.5px;color:#eef2f2}
+.menu-screen .promo-body p{margin:5px 0 0;font-size:10px;line-height:1.65;color:#b7c2c4}
+.menu-screen .promo-tag{display:inline-block;font-size:9px;letter-spacing:2px;color:#0e1a20;background:#d8dde0;padding:2px 7px;margin-bottom:5px;font-weight:700}
+.menu-screen .promo-tag.stattrak{background:#c8922a;color:#241a05}
+/* 中央角色区 */
+.menu-screen .view-home .lobby-character{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0;padding-bottom:10vh}
+.menu-screen .view-home .lobby-character-img{height:min(56vh,520px)}
+.menu-screen .player-nameplate{position:absolute;left:50%;top:70%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(12,18,24,.62);border:1px solid #ffffff2e;padding:7px 14px;backdrop-filter:blur(8px);z-index:2}
+.menu-screen .player-nameplate b{font-size:13px;letter-spacing:.5px;color:#f2f5f3;font-weight:600}
+.menu-screen .player-nameplate span{font-size:9px;letter-spacing:1px;color:#9fb2ba}
+.menu-screen .player-nameplate i{font-style:normal;color:#eabe54;font-weight:700;margin-left:2px}
+.menu-screen .view-home #lobby-faction-name{position:static;transform:none;margin:10px 0 8px;font-size:10px;letter-spacing:2px;color:#9db0b5}
+.menu-screen .view-home .faction-switch{position:static;transform:none;z-index:2;justify-content:center}
+.menu-screen .play-cta{width:min(320px,80%);margin:10px auto 0;justify-content:center;gap:16px;background:linear-gradient(180deg,#7bc542,#4e8f22);color:#f2ffe9;border:1px solid #93d45f;border-radius:3px;box-shadow:0 8px 22px #4e8f2240;letter-spacing:2px}
+.menu-screen .play-cta:hover{background:linear-gradient(180deg,#8ad44d,#5aa328)}
+.menu-screen .play-cta span{font-size:16px}
+/* 右侧好友栏 */
+.menu-screen .friends-sidebar{display:flex;flex-direction:column;min-height:0;background:rgba(16,22,28,.72);border-left:1px solid #ffffff20;backdrop-filter:blur(12px)}
+.menu-screen .friends-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #ffffff1c;font-size:15px;letter-spacing:2px;color:#eef2f2}
+.menu-screen .friends-head b{font-size:11px;color:#9fb2ba;font-weight:400;letter-spacing:0}
+.menu-screen .friends-list{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;padding:8px 0}
+.menu-screen .friend-row{display:flex;align-items:center;gap:11px;padding:9px 18px;transition:background .15s ease}
+.menu-screen .friend-row:hover{background:#ffffff0d}
+.menu-screen .friend-row img,.menu-screen .friend-avatar{width:38px;height:38px;flex:0 0 38px;object-fit:cover;object-position:50% 12%;border:1px solid #ffffff26;background:#1c2833}
+.menu-screen .friend-avatar{background:linear-gradient(150deg,hsl(var(--hue,210) 28% 38%),hsl(var(--hue,210) 22% 22%));display:block}
+.menu-screen .friend-row span{min-width:0}
+.menu-screen .friend-row b{display:block;font-size:12px;font-weight:500;color:#e8ecec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu-screen .friend-row small{font-size:10px;color:#7f9096}
+.menu-screen .friends-foot{border-top:1px solid #ffffff1c;padding:8px 0 10px}
+.menu-screen .friend-foot-row{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:11px 18px;color:#c2ced2;font-size:12px;text-align:left}
+.menu-screen .friend-foot-row:hover{background:#ffffff0d}
+.menu-screen .friend-foot-row b{margin-left:auto;font-size:11px;color:#8fa2a8;font-weight:400}
+.menu-screen .friend-foot-icon{width:18px;text-align:center;color:#8fb8cc}
+/* 视图占位（武器装备 / 库存 / 商店 / 新闻） */
+.menu-screen .view-placeholder{max-width:860px;margin:6vh auto 0;text-align:center;color:#c6d1d4}
+.menu-screen .view-placeholder .eyebrow{justify-content:center;color:#8fa8b2}
+.menu-screen .view-placeholder h2{font-size:34px;letter-spacing:2px;margin:14px 0 10px;color:#f2f5f3;font-weight:600}
+.menu-screen .view-placeholder p{font-size:13px;line-height:1.9;color:#93a4aa}
+.menu-screen .placeholder-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+.menu-screen .placeholder-cards i{display:block;height:150px;background:#ffffff0a;border:1px dashed #ffffff24;border-radius:4px}
+.menu-screen .news-list{list-style:none;margin:30px auto 0;padding:0;max-width:620px;text-align:left}
+.menu-screen .news-list li{background:#ffffff08;border:1px solid #ffffff17;border-radius:4px;padding:15px 18px;margin-bottom:12px}
+.menu-screen .news-list b{display:block;font-size:15px;color:#eef2f2}
+.menu-screen .news-list span{display:block;font-size:12px;color:#93a4aa;margin:6px 0}
+.menu-screen .news-list small{font-size:10px;color:#6f8086}
+.menu-screen .view-inventory .open-legacy-skins{margin-top:22px;background:#ffffff10;border:1px solid #ffffff2c;color:#d7e0e2;padding:10px 18px;font-size:12px;border-radius:3px}
+.menu-screen .view-inventory .open-legacy-skins:hover{background:#ffffff1c}
+/* ===== 对局面板（参考图 2：从顶部滑出） ===== */
+.mode-select-screen{align-items:flex-start;justify-content:stretch;padding:0;z-index:25}
+.mode-select-screen .play-panel{position:relative;z-index:1;width:100%;height:93vh;min-height:0;display:flex;flex-direction:column;gap:0;padding:0 3vw 2vh;margin-top:7vh;background:linear-gradient(180deg,rgba(22,31,40,.97) 0%,rgba(15,21,28,.97) 100%);border-bottom:1px solid #ffffff30;box-shadow:0 24px 60px #0008;overflow:hidden;transform:translateY(0)}
+.mode-select-screen .map-groups{overflow-y:auto;min-height:0;scrollbar-width:thin}
+.mode-select-screen .play-panel-head,.mode-select-screen .mode-row,.mode-select-screen .play-panel-foot{flex-shrink:0}
+.mode-select-screen.fade-in .play-panel{animation:play-panel-in .3s cubic-bezier(.22,.8,.3,1) both}
+.mode-select-screen.fade-out .play-panel{animation:play-panel-out .22s ease-in both}
+@keyframes play-panel-in{from{transform:translateY(-103%)}to{transform:translateY(0)}}
+@keyframes play-panel-out{from{transform:translateY(0)}to{transform:translateY(-103%)}}
+.mode-select-shade{background:rgba(8,12,16,.55);backdrop-filter:blur(4px) brightness(.75)}
+.play-panel-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0 12px;border-bottom:1px solid #ffffff1c}
+.play-tabs{display:flex;gap:6px}
+.play-tab{background:#ffffff08;border:1px solid #ffffff1c;color:#9db0b6;font-size:13px;letter-spacing:1px;padding:9px 20px;border-radius:2px}
+.play-tab.active{background:#2c4a63;color:#eaf4fa;border-color:#4a7ea8}
+.play-tab:disabled{opacity:.45;cursor:not-allowed}
+#mode-back{background:#ffffff0a;border:1px solid #ffffff28;color:#c2ced2;font-size:11px;letter-spacing:1px;padding:9px 15px;border-radius:2px}
+#mode-back:hover{background:#ffffff18;color:#fff}
+.mode-row{display:flex;flex-wrap:wrap;gap:6px;padding:14px 0 4px}
+.mode-pill{background:#ffffff06;border:1px solid #ffffff16;color:#8fa1a8;font-size:12px;letter-spacing:1px;padding:8px 14px;border-radius:2px}
+.mode-pill:disabled{opacity:.42;cursor:not-allowed}
+.mode-pill:not(:disabled):hover{border-color:#ffffff44;color:#d7e2e5}
+.mode-pill.selected{background:#2c4a63;border-color:#5b9ed3;color:#fff}
+.map-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:16px 0;flex:1}
+.map-group{background:#ffffff07;border:1px solid #ffffff1a;border-radius:3px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.map-group h3{margin:0;font-size:13px;letter-spacing:1px;color:#dfe7e9;font-weight:600;display:flex;flex-direction:column;gap:5px}
+.map-group h3 small{font-size:9px;letter-spacing:0;color:#82969c;font-weight:400;line-height:1.6}
+.map-group .map-pool{display:flex;flex-direction:column;gap:8px}
+.map-group-locked{opacity:.55}
+.locked-maps{display:flex;flex-direction:column;gap:7px}
+.locked-map{display:flex;align-items:center;justify-content:center;gap:9px;min-height:52px;background:#ffffff08;border:1px solid #ffffff14;border-radius:2px;color:#7c8b91;font:700 13px/1 'Arial Narrow',Arial,sans-serif;letter-spacing:2px;font-style:normal}
+.locked-map img{width:34px;height:34px;flex:0 0 34px;object-fit:contain;filter:grayscale(.35) opacity(.85)}
+.map-group .map-pool-choice .map-pool-badge{width:44px;height:44px;flex:0 0 44px}
+.map-group .map-pool-choice .map-pool-badge img{width:100%;height:100%;object-fit:contain}
+.locked-note{margin:auto 0 0;font-size:10px;letter-spacing:2px;color:#6e7d83;text-align:center;padding-top:6px;border-top:1px solid #ffffff12}
+.play-panel-foot{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 0 8px;border-top:1px solid #ffffff1c}
+.play-panel-status{display:flex;flex-direction:column;gap:5px;min-width:0}
+#mode-select-hint{color:#8fa8b2;font-size:11px;letter-spacing:1px}
+#menu-status{font-size:11px;color:#b7c4c7;margin:0;min-height:0}
+#mode-start{width:clamp(200px,18vw,300px);min-height:clamp(54px,7vh,72px);background:linear-gradient(180deg,#7bc542,#4e8f22);border:1px solid #93d45f;color:#f4ffec;font-size:21px;font-weight:700;letter-spacing:6px;border-radius:3px;box-shadow:0 10px 26px #4e8f2240}
+#mode-start:hover{background:linear-gradient(180deg,#8ad44d,#5aa328);box-shadow:0 12px 30px #4e8f2255}
+/* 窄屏降级 */
+@media(max-width:1050px){.menu-screen .menu-content.menu-shell{grid-template-columns:minmax(0,1fr) 220px}.map-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){
+  .menu-screen .menu-content.menu-shell{grid-template-columns:1fr}
+  .menu-screen .friends-sidebar{display:none}
+  .menu-screen .view-home.active{grid-template-columns:1fr}
+  .menu-screen .promo-column{display:none}
+  .menu-screen .menu-view{padding:16px 4vw}
+  .map-groups{grid-template-columns:1fr}
+  .mode-select-screen .play-panel{margin-top:56px;padding:0 4vw 2vh}
+  .play-panel-foot{flex-direction:column;align-items:stretch}
+  #mode-start{width:100%}
+}
+@media(prefers-reduced-motion:reduce){.mode-select-screen.fade-in .play-panel,.mode-select-screen.fade-out .play-panel{animation:none}}
+/* ===== 外壳修正：覆盖旧首页遗留的绝对定位 / 导航居中规则 ===== */
+@media(min-width:901px){
+  .menu-screen #menu-play-tab{position:static;transform:none;font-size:15px;font-weight:600;letter-spacing:2px}
+  .menu-screen #menu-play-tab::after{left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,#eabe54,#eabe54,transparent)}
+}
+.menu-screen .main-nav .agents-button{margin-left:0;align-self:center;font-size:11px;letter-spacing:1px;padding:8px 12px;background:#ffffff0a;border:1px solid #ffffff2c;color:#c2ced2;border-radius:2px}
+.menu-screen .menu-profile{gap:12px}
+.menu-screen .menu-profile .profile-btn{background:#ffffff0a;border:1px solid #ffffff2c;color:#d7e0e2;font-size:11px;letter-spacing:1px;padding:8px 13px;border-radius:2px}
+.menu-screen .menu-profile .profile-btn:hover{background:#ffffff1c;color:#fff}
+.menu-screen .menu-profile>b{margin-left:4px;padding:8px 12px;border:1px solid #ffffff2c;background:#ffffff08;border-radius:2px;font-size:14px;letter-spacing:1px}
+/* 角色画布收进中央栏（左让活动列，右让好友栏） */
+@media(min-width:901px){#menu .lobby-showcase-canvas{left:calc(3vw + 336px);right:auto;width:calc(97vw - 604px)}}
+.menu-screen .menu-profile .agents-button{margin-left:0;align-self:center;font-size:11px;letter-spacing:1px;padding:8px 12px;background:#ffffff0a;border:1px solid #ffffff2c;color:#c2ced2;border-radius:2px}
+.menu-screen .menu-profile .agents-button:hover{background:#ffffff1c;color:#fff}
+/* 阵营切换与阵营名回到角色区文档流 */
+#menu .view-home #lobby-faction-name{position:static;transform:none;right:auto;bottom:auto;margin:10px 0 8px}
+#menu .view-home .faction-switch{position:static;transform:none;right:auto;bottom:auto;z-index:2}
+/* 窄屏下 canvas 隐藏规则保持不变 */
+/* ===== 二轮返工（步骤 1.5）：图标顶栏 / 悬浮名牌 / 好友悬停呼出 ===== */
+.menu-screen .menu-header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 18px;min-height:56px}
+.menu-screen .icon-nav{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+.menu-screen .icon-btn{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;background:transparent;border:1px solid transparent;border-radius:3px;color:#c6d1d4;cursor:pointer;padding:0}
+.menu-screen .icon-btn:hover{background:#ffffff12;border-color:#ffffff2a;color:#fff}
+.menu-screen .icon-btn morph-icon,.menu-screen .icon-btn .morph-icon{width:21px;height:21px;display:block}
+.menu-screen .friend-foot-icon morph-icon,.menu-screen .friend-foot-icon .morph-icon{width:15px;height:15px;display:block}
+.menu-screen .main-nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;gap:2.6vw;flex:0 0 auto}
+.menu-screen .header-right{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.menu-screen .friends-badge{position:absolute;right:2px;top:2px;min-width:14px;height:14px;padding:0 3px;background:#3f6f9c;color:#eaf4fa;font:600 9px/14px Arial,sans-serif;text-align:center;border-radius:7px;font-style:normal}
+/* 名牌：半透明悬浮，头像 + 小号名字 */
+.menu-screen .player-nameplate{position:absolute;left:50%;top:72%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;background:rgba(16,22,28,.42);border:1px solid #ffffff26;border-radius:3px;padding:4px 10px 4px 4px;backdrop-filter:blur(6px);z-index:2}
+.menu-screen .player-nameplate img{width:26px;height:26px;object-fit:cover;object-position:50% 12%;border:1px solid #ffffff30;border-radius:2px;background:#1c2833}
+.menu-screen .player-nameplate b{font-size:11px;font-weight:500;letter-spacing:.3px;color:#e7ecee}
+/* 好友栏：右缘悬停渐入滑出（默认收起） */
+.menu-screen .friends-hotzone{position:fixed;right:0;top:56px;bottom:42px;width:26px;z-index:24}
+.menu-screen .friends-sidebar{position:fixed;right:0;top:56px;bottom:42px;width:282px;z-index:26;transform:translateX(103%);opacity:0;pointer-events:none;transition:transform .28s cubic-bezier(.22,.8,.3,1),opacity .22s ease;box-shadow:-18px 0 44px #0007}
+#menu.friends-open .friends-sidebar{transform:translateX(0);opacity:1;pointer-events:auto}
+#menu.friends-open .friends-hotzone{width:0}
+.menu-screen .menu-content.menu-shell{display:block;width:100%;padding:0;min-height:calc(100vh - 98px)}
+.menu-screen .menu-views{position:relative;height:calc(100vh - 98px)}
+@media(min-width:901px){#menu .lobby-showcase-canvas{left:calc(3vw + 336px);right:auto;width:calc(95vw - 336px)}}
+@media(max-width:900px){.menu-screen .friends-hotzone{display:none}.menu-screen .main-nav{position:static;transform:none;gap:14px}.menu-screen .menu-header{min-height:52px;padding:0 10px}.menu-screen .icon-btn{width:32px;height:32px}}

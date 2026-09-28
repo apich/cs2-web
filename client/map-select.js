@@ -40,9 +40,11 @@ export function mountMapPool() {
         button.dataset.mapId = map.id;
         button.className = 'map-pool-choice';
         button.setAttribute('aria-pressed', String(selection.includes(map.id)));
-        const badge = map.overview?.image
-          ? `<img src="${new URL(map.overview.image.replace(/^\//, ''), document.baseURI).href}" alt="${map.name} 雷达">`
+        const icon = `assets/map-icons/map_icon_${map.id}.svg`;
+        const radar = map.overview?.image
+          ? new URL(map.overview.image.replace(/^\//, ''), document.baseURI).href
           : '';
+        const badge = `<img src="${icon}" alt="${map.name} 徽章"${radar ? ` data-radar="${radar}"` : ''}>`;
         button.innerHTML = `<span class="map-pool-badge">${badge}</span><span class="map-pool-name"><b>${map.name}</b><small>${map.id}</small></span><i>✓</i>`;
         button.addEventListener('click', () => { toggle(map.id); });
         container.append(button);

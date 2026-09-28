@@ -42,6 +42,7 @@ export class AgentMenu {
 
   close(){
     this.element.hidden=true;
+    document.dispatchEvent(new CustomEvent('agent-menu-closed'));
     if(this.previousFocus?.isConnected&&!this.previousFocus.closest('[hidden]'))this.previousFocus.focus?.({preventScroll:true});
   }
 

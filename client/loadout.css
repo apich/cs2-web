@@ -1,0 +1,106 @@
+/* 「武器装备」视图（对照录屏 20260928-0644-30）：
+   上方布局固定：左 CT（外缘槽位+人物）｜中武器装备栏｜右 T（人物+外缘槽位）。
+   选中边只提亮；下方库存网格可滚动、卡片加大。 */
+.menu-screen .view-loadout{padding:0}
+.loadout-screen{display:flex;flex-direction:column;height:100%;min-height:0;background:#141b22}
+/* 人物画布只在大厅显示，避免从其它视图透出 */
+#menu:not(.on-home) .lobby-showcase-canvas{display:none}
+#menu .lobby-showcase-canvas{z-index:0}
+.menu-screen .menu-views{z-index:1;background:transparent}
+.menu-screen .view-loadout{background:#141b22}
+.menu-screen .view-inventory,.menu-screen .view-shop,.menu-screen .view-news,.menu-screen .view-loadout{background:#141b22}
+/* ── 上方固定三栏 ── */
+.loadout-upper{display:grid;grid-template-columns:minmax(170px,0.92fr) minmax(320px,1.75fr) minmax(170px,0.92fr);gap:12px;flex:1;min-height:0;padding:12px 2vw 6px}
+.loadout-side{--team:#6fa8d8;position:relative;display:flex;flex-direction:column;min-width:0;background:linear-gradient(180deg,rgba(30,44,58,.42),rgba(16,22,30,.5));border:1px solid #ffffff1a;border-radius:4px;padding:10px 12px;overflow:hidden;cursor:pointer;opacity:.72;transition:opacity .18s ease,border-color .18s ease,filter .18s ease}
+.loadout-side[data-side="T"]{--team:#d8b06a}
+.loadout-side:hover{opacity:.92}
+.loadout-side.is-selected{opacity:1;border-color:var(--team);filter:brightness(1.12)}
+.loadout-side-head{display:flex;align-items:center;gap:10px;border-bottom:1px solid #ffffff18;padding-bottom:6px;flex:0 0 auto}
+.loadout-team-chip{display:flex;align-items:center;justify-content:center;width:40px;height:40px;flex:0 0 40px;border:1px solid var(--team);color:var(--team);font:800 14px/1 Arial;letter-spacing:1px;border-radius:2px}
+.loadout-side-head b{display:block;font-size:14px;letter-spacing:2px;color:#eef2f3}
+.loadout-side-head small{font-size:9px;color:#9fb2ba;letter-spacing:1px}
+/* 侧栏内容：CT=槽位(外缘)+人物；T=人物+槽位(外缘) —— 顺序由 order 控制，布局固定 */
+.loadout-side-body{flex:1;min-height:0;display:grid;grid-template-columns:54px minmax(0,1fr);column-gap:8px;padding-top:8px}
+.loadout-side[data-side="T"] .loadout-side-body{grid-template-columns:minmax(0,1fr) 54px}
+.loadout-side[data-side="CT"] .loadout-slots{order:1}
+.loadout-side[data-side="CT"] .loadout-character{order:2}
+.loadout-side[data-side="T"] .loadout-character{order:1}
+.loadout-side[data-side="T"] .loadout-slots{order:2}
+.loadout-character{width:100%;height:100%;max-height:52vh;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 12px 20px #0006);align-self:end;min-height:0}
+.loadout-slots{display:flex;flex-direction:column;gap:5px;min-height:0}
+.loadout-slot{position:relative;display:flex;align-items:center;justify-content:center;flex:1;min-height:30px;background:#ffffff09;border:0;border-bottom:2px solid #ffffff2e;border-radius:2px;cursor:pointer;padding:3px}
+.loadout-slot img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 3px #0005)}
+.loadout-slot:hover{background:#ffffff16}
+.loadout-slot.is-selected{border-bottom-color:var(--team);background:#ffffff12}
+.loadout-slot.slot-locked{opacity:.5;cursor:not-allowed}
+.loadout-slot .slot-placeholder{font-size:8px;color:#8fa2a8;letter-spacing:1px}
+/* ── 中间武器装备栏（始终固定在此） ── */
+.loadout-center{display:grid;grid-template-columns:34px minmax(0,1fr) 34px;column-gap:10px;min-width:0;min-height:0}
+.loadout-ghosts{display:flex;flex-direction:column;justify-content:space-evenly;opacity:.14;pointer-events:none;min-height:0}
+.loadout-ghosts img{width:100%;max-height:38px;object-fit:contain}
+/* 三列分类栏：随高度自适应，不出滚动条 */
+.loadout-cats{min-height:0;overflow:hidden;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-content:stretch}
+.loadout-col{display:flex;flex-direction:column;gap:6px;min-height:0}
+/* 分类组不占独立盒子：标题与格子直接均分列高，保证行高一致 */
+.loadout-cat{display:contents}
+.loadout-cat h3{margin:2px 0 0;display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:2px;color:#dfe7e9;font-weight:600;flex:0 0 auto;padding-bottom:1px}
+.loadout-cat h3 morph-icon,.loadout-cat h3 .morph-icon{width:13px;height:13px;opacity:.8}
+.loadout-item{position:relative;display:flex;flex-direction:column;flex:1;min-height:22px;width:100%;padding:6px 10px 0;background:linear-gradient(90deg,#2134483d,#15263838);border:1px solid #ffffff18;border-radius:2px;cursor:pointer;overflow:hidden}
+.loadout-item img{flex:1;min-height:0;width:100%;object-fit:contain;transform:scale(1.12);transform-origin:center 50%}
+.loadout-item .rarity-bar{display:block;height:3px;flex:0 0 3px;margin:4px -8px 0;opacity:.95}
+.loadout-item:hover{background:#d7e6ed20;border-color:#ffffff50}
+.loadout-item.is-selected{border-color:#7fb6e0;box-shadow:0 0 0 1px #7fb6e0 inset}
+/* ── 下方库存网格（可滚动，卡片加大） ── */
+.loadout-inventory{flex-shrink:0;display:flex;flex-direction:column;gap:8px;border-top:1px solid #ffffff22;background:rgba(24,28,32,.72);backdrop-filter:blur(10px);padding:10px 2vw 10px;height:40vh;min-height:230px}
+.inv-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.inv-filter,.inv-sort{display:flex;align-items:center;gap:8px;background:#ffffff0a;border:1px solid #ffffff22;border-radius:2px;color:#dfe7e9;font-size:12px;letter-spacing:1px;padding:8px 14px;cursor:pointer}
+.inv-filter:hover,.inv-sort:hover{background:#ffffff14}
+.inv-filter morph-icon,.inv-sort morph-icon,.inv-filter .morph-icon,.inv-sort .morph-icon{width:15px;height:15px}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#ffffff2e transparent;padding-bottom:6px}
+.inv-grid::-webkit-scrollbar{width:5px}
+.inv-grid::-webkit-scrollbar-track{background:transparent}
+.inv-grid::-webkit-scrollbar-thumb{background:#ffffff2e;border-radius:3px}
+.inv-grid::-webkit-scrollbar-thumb:hover{background:#ffffff4d}
+.loadout-cats::-webkit-scrollbar,.loadout-slots::-webkit-scrollbar{width:5px}
+.loadout-cats::-webkit-scrollbar-thumb,.loadout-slots::-webkit-scrollbar-thumb{background:#ffffff2e;border-radius:3px}
+/* 拖拽装备：拖到武器格上高亮 */
+.loadout-item.drag-over{border-color:#7fb6e0;background:#7fb6e026;box-shadow:0 0 0 1px #7fb6e0}
+.loadout-slot.drag-over{border-bottom-color:#7fb6e0;background:#7fb6e026}
+.inv-item{cursor:grab}
+.inv-item:active{cursor:grabbing}
+.inv-item.dragging{opacity:.45}
+.inv-item{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:#dfe7e9}
+.inv-thumb{position:relative;display:block;background:linear-gradient(180deg,#2b3036,#22262b);border:1px solid #ffffff1c;border-radius:2px;overflow:hidden}
+.inv-thumb img{width:100%;height:104px;object-fit:contain;transform:scale(1.32);transform-origin:center 50%;display:block}
+.inv-thumb .rarity-bar{display:block;height:3px;opacity:.95}
+.inv-item b{font-size:12px;font-weight:600;margin-top:6px}
+.inv-item small{font-size:11px;color:#9fb2ba}
+.inv-item:hover .inv-thumb{border-color:#ffffff50}
+.inv-item.selected .inv-thumb{border-color:#eabe54}
+.inv-item:disabled{opacity:.55;cursor:wait}
+.inv-status{font-size:10px;color:#82969c;letter-spacing:.5px;min-height:13px}
+@media(max-height:820px){
+  .loadout-inventory{height:36vh;min-height:190px}
+  .loadout-cats{gap:10px}
+  .loadout-col{gap:8px}
+  .loadout-item{min-height:18px;padding:4px 7px 0}
+  .loadout-item .rarity-bar{margin:3px -7px 0}
+  .inv-thumb img{height:88px}
+}
+@media(max-width:900px){
+  .loadout-upper{grid-template-columns:1fr;overflow-y:auto}
+  .loadout-center{min-height:320px}
+  .loadout-inventory{height:auto;min-height:200px}
+}
+/* 窄屏：顶栏两行（图标行 + 可滚动 tab 行） */
+@media(max-width:900px){
+  .menu-screen .menu-header{flex-wrap:wrap;min-height:auto;padding:6px 8px}
+  .menu-screen .main-nav{position:static;transform:none;order:3;flex:1 1 100%;justify-content:space-between;gap:0;overflow-x:auto;scrollbar-width:none}
+  .menu-screen .main-nav::-webkit-scrollbar{display:none}
+  .menu-screen .main-nav button{padding:8px 6px;font-size:13px;letter-spacing:.5px;white-space:nowrap}
+  .menu-screen .header-right{order:2;margin-left:auto}
+}
+/* 视图切换过渡（步骤 5） */
+.menu-screen .menu-view.active{animation:view-enter .22s ease-out both}
+@keyframes view-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.menu-screen .menu-view.active{animation:none}}
