@@ -4,10 +4,12 @@
 // 不单独开 requestAnimationFrame——渲染由 main.js 主循环 frame() 统一驱动，离开首页立即停止渲染。
 import * as THREE from 'three';
 import { loadModels, PlayerModel } from './models.js';
+import { readAgentLoadout } from './agent-menu.js';
+import { equippedSkinId } from './team-loadout.js';
 
 const AGENT_BY_TEAM = { CT: 'ct-sas', T: 't-phoenix' };
-// 大厅展示用近战待机（knife/idle 循环），姿态更放松，不举步枪；后续想要耍帅动作可直接换动画名
-const WEAPON_BY_TEAM = { CT: 'knife', T: 'knife' };
+// 大厅持本阵营制式手枪（CT=USP / T=Glock），皮肤跟随该阵营的装备
+const WEAPON_BY_TEAM = { CT: 'usp', T: 'pistol' };
 // 相机参数：角色脚部位于画面约 94% 高度、头部约 23%。DX 微负用于抵消角色轮廓/姿势导致的视觉偏心，保持屏幕正中观感。
 const DIST = 3.7, DX = -0.08;
 // 大厅相机位于 +Z 向前看，模型自带 rotation.y=π 面朝 -Z（游戏世界前方），因此 yaw 补 π 让角色正面朝向镜头。
@@ -72,15 +74,17 @@ export function mountLobbyShowcase({ initialFaction = 'T' } = {}) {
     });
   }
 
-  const fakePlayer = weapon => ({ id: 'lobby', alive: true, x: DX, y: 0, z: 0, yaw: FACE_CAMERA_YAW, pitch: 0, vx: 0, vz: 0, crouch: false, grounded: true, weapon, skinId: null, slot: 1 });
+  const fakePlayer = (weapon, skinId) => ({ id: 'lobby', alive: true, x: DX, y: 0, z: 0, yaw: FACE_CAMERA_YAW, pitch: 0, vx: 0, vz: 0, crouch: false, grounded: true, weapon, skinId: skinId || null, slot: 1 });
 
   function build() {
+    const agents = readAgentLoadout();
     const mk = team => {
-      const m = new PlayerModel(team, scene, AGENT_BY_TEAM[team]);
+      const agentId = agents[team] || AGENT_BY_TEAM[team];
+      const m = new PlayerModel(team, scene, agentId);
       m.ring.visible = false; // 大厅展示不需要脚下的队伍光圈
-      const fake = fakePlayer(WEAPON_BY_TEAM[team]);
+      const fake = fakePlayer(WEAPON_BY_TEAM[team], equippedSkinId(team, WEAPON_BY_TEAM[team]));
       m.update(fake, 0.016, { exactPosition: true, animationRate: 60 });
-      return { m, fake };
+      return { m, fake, team, agentId };
     };
     const ct = mk('CT'), t = mk('T');
     // 模型原点在身体中段：按包围盒把脚对齐到 y=0，并按身高调整相机（头部约 26% 屏高、脚部约 94%）
@@ -144,9 +148,33 @@ export function mountLobbyShowcase({ initialFaction = 'T' } = {}) {
       if (k >= 1) { tw.old.m.group.visible = false; tw.old.m.group.scale.setScalar(1); state.tween = null; }
     }
     for (const it of Object.values(state.models)) {
-      if (it && it.m.group.visible) { it.m.update(it.fake, ndt, { exactPosition: true, animationRate: 60 }); it.m.ring.visible = false; }
+      if (it && it.m.group.visible) {
+        // 皮肤热更新：大厅武器跟随该阵营的装备（未下载的刀型等会自动回退默认皮）
+        it.fake.skinId = equippedSkinId(it.team, WEAPON_BY_TEAM[it.team]) || null;
+        it.m.update(it.fake, ndt, { exactPosition: true, animationRate: 60 }); it.m.ring.visible = false;
+      }
     }
     renderer.render(scene, camera);
+  }
+
+  /** 探员装备变化后重建展示模型（皮肤在 update 里热更新，无需重建） */
+  function refreshAgents() {
+    if (!state.ready) return;
+    const agents = readAgentLoadout();
+    for (const team of ['CT', 'T']) {
+      const want = agents[team] || AGENT_BY_TEAM[team];
+      const cur = state.models[team];
+      if (!cur || cur.agentId === want) continue;
+      cur.m.dispose();
+      const m = new PlayerModel(team, scene, want);
+      m.ring.visible = false;
+      const fake = fakePlayer(WEAPON_BY_TEAM[team], equippedSkinId(team, WEAPON_BY_TEAM[team]));
+      m.update(fake, 0.016, { exactPosition: true, animationRate: 60 });
+      m.group.position.y = cur.m.group.position.y;
+      fake.y = cur.fake.y;
+      m.group.visible = team === state.faction;
+      state.models[team] = { m, fake, team, agentId: want };
+    }
   }
 
   // 阵营切换：旧模型 opacity 1→0 / scale 1→0.985，新模型 0→1 / 1.015→1，约 400ms
@@ -167,5 +195,5 @@ export function mountLobbyShowcase({ initialFaction = 'T' } = {}) {
     renderer.dispose();
   }
 
-  return { update, setFaction, dispose, isReady: () => state.ready };
+  return { update, setFaction, refreshAgents, dispose, isReady: () => state.ready };
 }

@@ -13,6 +13,8 @@
     "assets:check": "node scripts/fetch-assets.mjs --check"
   },
   "dependencies": {
+    "lucide": "^1.48.0",
+    "morphicons": "^1.7.1",
     "three": "0.185.1",
     "three-mesh-bvh": "0.9.14",
     "ws": "8.21.3"
