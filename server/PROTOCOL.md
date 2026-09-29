@@ -83,6 +83,42 @@ invalid JSON, oversized frames, join spam, stale inputs, non-finite coordinates,
 invalid weapons and excessive requests. Invalid inputs never set positions.
 Disconnect removes the player and drops their bomb. Empty human rooms are removed.
 
+## Accounts (optional)
+
+Accounts are optional: a guest can join without one, but name, loadouts and
+stats only persist for logged-in players. All account messages are sent on the
+same `/ws` connection and work before `join`:
+
+```json
+{"type":"register","username":"alice","password":"secret"}
+{"type":"login","username":"alice","password":"secret"}
+{"type":"loginToken","token":"<hex>"}
+```
+
+Success answers `{"type":"authOk","token":"...","account":{...}}`. `account`
+carries `username`, `name`, `skins` (`{ct,t}` per-team loadouts), `agents`,
+`settings` and `stats` (kills/deaths/wins/matches/xp/level). Tokens expire after
+30 days; passwords are stored as scrypt hashes, tokens as SHA-256 hashes, in
+`data/accounts.json` (path overridable with `DATA_DIR`).
+
+While authenticated on a connection:
+
+- `join` overrides the message's `name`, `skins` and `agents` with the account's
+  values (skins are picked per assigned team). Clients should still send valid
+  cosmetics so guests keep working.
+- `{"type":"equipSkin","weapon":"ak47","skin":"...","team":"CT"}` and
+  `{"type":"equipAgent","agent":"..."}` also write back to the account; `team`
+  selects which side's loadout the skin is stored under (`CT`/`T`, defaults to
+  the player's current team).
+- `{"type":"saveProfile","name":"...","skins":{...},"agents":{...},"settings":{...}}`
+  merges a partial profile (debounced client-side) and answers
+  `{"type":"profileSaved","account":{...}}`.
+- `{"type":"logout","token":"..."}` revokes the token.
+
+Auth failures answer `error` with codes `AUTH_BAD_CREDENTIALS`, `AUTH_TAKEN`,
+`AUTH_BAD_TOKEN`, `AUTH_USERNAME`, `AUTH_PASSWORD`, `AUTH_RATE`, `AUTH_LOCKED`.
+Repeated password failures lock further attempts on that connection for 60s.
+
 HTTP: `/health` returns room/player statistics; other requests serve the built
 `dist` frontend when present. `PORT` defaults to 3000; `HOST` defaults to 0.0.0.0.
 Programmatic API: `await startGameServer({port: 0, host: '127.0.0.1'})` returns

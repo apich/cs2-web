@@ -366,3 +366,22 @@ body.playing #hud{animation:hud-fade-in .45s ease-out both}
 .menu-screen .menu-views{position:relative;height:calc(100vh - 98px)}
 @media(min-width:901px){#menu .lobby-showcase-canvas{left:calc(3vw + 336px);right:auto;width:calc(95vw - 336px)}}
 @media(max-width:900px){.menu-screen .friends-hotzone{display:none}.menu-screen .main-nav{position:static;transform:none;gap:14px}.menu-screen .menu-header{min-height:52px;padding:0 10px}.menu-screen .icon-btn{width:32px;height:32px}}
+
+/* 账户面板 */
+.account-chip{cursor:pointer}
+.account-chip:hover{border-color:#eabe54aa}
+.account-chip.is-logged-in #account-status{color:#eabe54}
+.nameplate-text{display:flex;flex-direction:column;line-height:1.25}
+.nameplate-text small{font-size:9px;letter-spacing:.5px;color:#9fb2ba}
+.account-card{width:400px}
+.account-card .account-hint{display:block;font-size:10px;color:#a9b29e;line-height:1.8;margin-top:12px}
+.account-error{color:#f0a9a9;font-size:11px;line-height:1.6;margin:10px 0 0}
+.account-actions{display:flex;gap:10px;align-items:center;margin-top:18px}
+.account-actions .primary-button{margin-top:0;flex:1}
+.account-actions button[type=button],#account-logout{background:#ffffff0a;border:1px solid var(--line);padding:12px 14px;font-size:12px;white-space:nowrap}
+.account-actions button[type=button]:hover,#account-logout:hover{background:#ffffff14}
+#account-logged-in p{margin:8px 0;font-size:13px;color:#d5ddd2}
+#account-logged-in .account-hint{margin-top:6px}
+
+/* 3D 大厅把 .lobby-character 整块设为 pointer-events:none，名牌需单独收回点击 */
+#menu.lobby-3d .lobby-character .account-chip{pointer-events:auto}

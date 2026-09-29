@@ -4,11 +4,43 @@
 
 发布与验证结果记录在项目提交和发布说明中；网络延迟取决于所在地区与当时线路。
 
+## 账户（可选）
+
+首页点击角色下方的名牌即可注册/登录。登录后名字、CT/T 皮肤、探员、设置与战绩保存在服务器 `data/accounts.json`，换浏览器、换设备登录即恢复；不登录也能进房游玩，但配置只存在本机浏览器里。
+
+## 局域网联机（朋友在同一 WiFi/网线下）
+
+1. 主机双击 `Start-Game.cmd` 启动游戏服务器（默认端口 3000）。
+2. 主机按 `Win+R` 输入 `cmd`，运行 `ipconfig`，找到「IPv4 地址」（形如 `192.168.x.x`）。
+3. 朋友在自己的浏览器打开 `http://主机IPv4:3000/`（例如 `http://192.168.1.5:3000/`）。
+4. 主机第一次启动时若 Windows 弹出防火墙提示，勾选「专用网络」并允许 Node.js；或手动放行入站 TCP 3000。
+5. 局域网里主机与朋友各自注册账户，配置即跨设备保留。
+
+注意：`localhost` 只指主机自己；朋友必须用主机的局域网 IP 访问。
+
+## 外网联机（cloudflared 隧道，朋友不在同一网络）
+
+不改路由器、不要公网 IP，用 Cloudflare 隧道把本机 3000 端口临时映射出去：
+
+1. 安装 cloudflared（Windows：`winget install cloudflare.cloudflared`）。
+2. 在项目目录运行：
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+
+3. 输出里的 `https://xxx-yyy.trycloudflare.com` 就是游戏网址，发给朋友直接打开玩（自动走 HTTPS/WSS，账户与房间都可用）。
+4. 每次重启隧道网址会变，重新发一次链接即可；要用固定子域名则配置 Cloudflare 命名隧道（需自有域名托管在 Cloudflare）。
+
+备选：已购 VPS 也可用 frp 把家里端口映射到公网服务器；或装 Tailscale 组虚拟局域网后按局域网方式直连。
+
+## 运行与维护
+
 本地试玩：双击 `Start-Game.cmd`。它先构建网页，再在后台运行本项目服务器；看到启动成功后打开 <http://localhost:3000/>。关闭命令行窗口不会结束后台服务器。
 
 结束本地服务：双击 `Stop-Game.cmd`。脚本核对本项目记录的 PID、启动时间、Node 路径和服务器入口路径后才停止进程；其他 Node 程序不会因名称相同而被关闭。
 
-日志与进程记录位于 `.runtime/`。端口已被其他进程占用时，启动脚本会报错并保留那个进程。命令行可执行 `Start-Game.cmd -Port 3001` 使用其他端口；已有构建可加 `-NoBuild`。
+日志与进程记录位于 `.runtime/`。账户数据在 `data/`（不入 Git）。端口已被其他进程占用时，启动脚本会报错并保留那个进程。命令行可执行 `Start-Game.cmd -Port 3001` 使用其他端口；已有构建可加 `-NoBuild`。
 
 需要 Node.js 和项目依赖。启动脚本优先使用 `DUST2_NODE`、系统 Node、当前电脑的 Codex Node 运行时、标准 Node 安装路径。换电脑后如提示依赖缺失，请先在项目目录执行 `npm ci`、`npm run assets:fetch`。
 

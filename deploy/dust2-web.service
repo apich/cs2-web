@@ -13,6 +13,7 @@ Environment=HOST=127.0.0.1
 Environment=PORT=3005
 Environment=MAX_ROOMS=4
 Environment=NODE_OPTIONS=--max-old-space-size=384
+Environment=DATA_DIR=/opt/dust2-web/data
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15
@@ -22,6 +23,7 @@ TasksMax=64
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
+ReadWritePaths=/opt/dust2-web/data
 ProtectHome=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 

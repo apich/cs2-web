@@ -70,3 +70,10 @@ public/downloads/android-latest.json
 
 # 助手工作目录与本地记忆（不入库）
 .workbuddy/
+
+# 账户与本地数据（服务器运行时写入）
+data/
+
+# 第三方提取工具与运行日志
+tools/source2viewer/
+exceptions.txt

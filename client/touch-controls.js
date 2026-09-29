@@ -1,4 +1,5 @@
 import {TouchInput,normalizeTouch,touchLookDelta} from '../shared/touch-input.js';
+import {queueProfileSave} from './account.js';
 import './touch-controls.css';
 export class TouchControls {
  constructor({controls,storage,onLook,onCancel,onMode,onRoom,onFullscreen,getFov}){
@@ -39,7 +40,7 @@ export class TouchControls {
   this.refreshMode();this.drawThrow();
  }
  refreshMode(){const enabled=this.settings.mode==='on'||this.settings.mode==='auto'&&this.media.matches;if(enabled!==this.enabled){this.clear();this.enabled=enabled;this.controls.mouse=!enabled;this.onMode?.(enabled);}document.body.classList.toggle('touch-device',enabled);this.element.style.setProperty('--touch-size',this.settings.size);this.element.hidden=!enabled||!this.active;}
- configure(values){this.settings=normalizeTouch({...this.settings,...values});this.storage.setItem('dust2.touch.v1',JSON.stringify(this.settings));this.refreshMode();}
+ configure(values){this.settings=normalizeTouch({...this.settings,...values});this.storage.setItem('dust2.touch.v1',JSON.stringify(this.settings));queueProfileSave();this.refreshMode();}
  setActive(active){active=!!active;if(this.active&&!active)this.clear();this.active=active;this.element.hidden=!this.enabled||!active;}
  clear(){this.input?.clear();this.drawStick();this.element?.querySelectorAll('.pressed').forEach(b=>b.classList.remove('pressed'));}
  drawStick(){if(!this.input)return;const {right,forward}=this.input.axes;this.knob.style.transform=`translate(${right*38}px,${-forward*38}px)`;}

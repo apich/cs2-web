@@ -1,4 +1,5 @@
 import {preferences} from './persistence.js';
+import {queueProfileSave} from './account.js';
 import { AGENT_CATALOG, DEFAULT_AGENT_IDS, getAgent, normalizeAgentLoadout } from '../shared/agents.js';
 import { AGENT_ASSETS } from '../shared/agent-assets.js';
 import { loadAgent as loadAgentAsset } from './player-assets.js';
@@ -10,6 +11,12 @@ const TEAMS=[['CT','反恐精英'],['T','恐怖分子']];
 export function readAgentLoadout(){
   try{return normalizeAgentLoadout(JSON.parse(preferences.getItem(STORAGE_KEY)||'{}'));}
   catch{return {...DEFAULT_AGENT_IDS};}
+}
+
+/** Shared with the loadout inventory so both write the same key. */
+export function saveAgentLoadout(loadout){
+  try{preferences.setItem(STORAGE_KEY,JSON.stringify(loadout));queueProfileSave();return true;}
+  catch{return false;}
 }
 
 /** Loading happens only after selecting a card, before the server equip callback. */
@@ -113,7 +120,7 @@ export class AgentMenu {
       await this.onEquip(agent,next);
       if(this.destroyed)return;
       this.loadout=next;
-      let saved=true;try{preferences.setItem(STORAGE_KEY,JSON.stringify(next));}catch{saved=false;}
+      const saved=saveAgentLoadout(next);
       this.status(saved?`已装备 ${agent.name}。下次进入继续使用。`:`已装备 ${agent.name}。浏览器未能保存选择，下次进入需重新选择。`);
     }catch(error){
       if(!this.destroyed)this.status(`未能装备：${error?.message||'下载或连接失败'}。点击探员可重试。`);
