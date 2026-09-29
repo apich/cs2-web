@@ -1,3 +1,4 @@
+import { queueProfileSave } from './account.js';
 const VERSION = 1;
 const STORAGE_KEY = 'dust2.controls.v1';
 const MAX_BINDINGS = 3;
@@ -67,7 +68,7 @@ export class GameControls {
   }
   _save() {
     this.persistenceError = null;
-    try { this.storage?.setItem(STORAGE_KEY, JSON.stringify({ version: VERSION, bindings: this.bindings })); }
+    try { this.storage?.setItem(STORAGE_KEY, JSON.stringify({ version: VERSION, bindings: this.bindings })); queueProfileSave(); }
     catch { this.persistenceError = '浏览器未允许保存，当前设置仍然生效。'; }
   }
   _index() { this.byToken = new Map(); for (const [action, tokens] of Object.entries(this.bindings)) for (const token of tokens) this.byToken.set(token, action); }

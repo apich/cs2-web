@@ -1,4 +1,5 @@
 import {preferences} from './persistence.js';
+import {queueProfileSave} from './account.js';
 import {fetchCachedAsset,isAssetSaved} from './loading.js';
 
 const kits={neckdeep_01:'Neck Deep · 人生何处不青山',valve_cs2_01:'Valve · Counter-Strike 2',blitzkids_01:'Blitz Kids · 有为青年',neckdeep_02:'Neck Deep · 躺平青年',isoxo_01:'ISOxo · 非人类',none:'关闭音乐'};
@@ -12,8 +13,8 @@ export class MatchAudio {
     this.media=new Audio();this.media.preload='none';this.generation=0;this.cache=new Map();this.nextBeep=0;this.played=[];
   }
   async manifest(){return this.metadata||=fetchCachedAsset(new URL('assets/audio/music/manifest.json',document.baseURI)).then(r=>{if(!r.ok)throw Error('音乐盒清单加载失败');return r.json();}).catch(e=>{this.metadata=null;throw e;});}
-  setKit(kit){if(!Object.hasOwn(kits,kit))return;this.stop();this.kit=kit;preferences.setItem('dust2.music-kit',kit);}
-  setVolume(value){this.volume=Math.max(0,Math.min(1,Number(value)||0));if(this.gain)this.gain.gain.value=this.volume;preferences.setItem('dust2.music-volume',this.volume);}
+  setKit(kit){if(!Object.hasOwn(kits,kit))return;this.stop();this.kit=kit;preferences.setItem('dust2.music-kit',kit);queueProfileSave();}
+  setVolume(value){this.volume=Math.max(0,Math.min(1,Number(value)||0));if(this.gain)this.gain.gain.value=this.volume;preferences.setItem('dust2.music-volume',this.volume);queueProfileSave();}
   stop(){this.generation++;this.abort?.abort();this.abort=null;this.media.pause();this.media.removeAttribute('src');this.media.load();if(this.url)URL.revokeObjectURL(this.url);this.url=null;this.cue=null;}
   async play(cue){
     this.stop();if(this.kit==='none'||this.volume===0||!this.audio.ctx)return false;

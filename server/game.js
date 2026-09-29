@@ -134,8 +134,9 @@ export function applyArmorDamage(rawDamage, player, { headshot=false, armorRatio
 }
 
 export class GameRoom {
-  constructor(code, { mode = 'defuse', bots = 6, clock = () => Date.now(), rules = {}, traceBullet=defaultTraceBullet, mapId = DEFAULT_MAP } = {}) {
+  constructor(code, { mode = 'defuse', bots = 6, clock = () => Date.now(), rules = {}, traceBullet=defaultTraceBullet, mapId = DEFAULT_MAP, accounts = null } = {}) {
     this.code = code; this.mode = mode==='deathmatch'?'deathmatch':'defuse'; this.desiredBots = botCount(bots);
+    this.accounts = accounts;
     // Every room owns a map. The pool it was drawn from is kept so a rematch can
     // re-roll; `mapId` is the one currently loaded.
     this.mapId = resolveMapId(mapId); this.mapPool = null;
@@ -210,7 +211,7 @@ export class GameRoom {
     this.desiredBots=this.botCount;this.maybeStart();this.emit('bots_changed',{botCount:this.botCount,desiredBots:this.desiredBots});return {ok:true,botCount:this.botCount};
   }
 
-  addHuman(socket, { name, team = 'auto', primary = 'auto', skins, agents, movementProtocol }) {
+  addHuman(socket, { name, team = 'auto', primary = 'auto', skins, agents, movementProtocol, accountId = null, accountSkins = null }) {
     if (this.humanCount >= MAX_PLAYERS) throw new Error('房间已满，最多 10 名玩家。');
     let assigned = team;
     if (!['T', 'CT'].includes(assigned)) assigned = this.count('T', true) <= this.count('CT', true) ? 'T' : 'CT';
@@ -221,8 +222,11 @@ export class GameRoom {
     const id = `p_${randomBytes(6).toString('hex')}`;
     const player = this.makePlayer(id, name, assigned, false, primary);
     if(movementProtocol===1){player.movementStream=new MovementStream(player.lifeId);player.movementAt=this.clock();}
-    player.skins=normalizeSkinLoadout(skins);
+    // 已登录账户：皮肤按实际分队从账户取，客户端 join 消息里的化妆品被忽略。
+    const sideSkins = accountSkins ? (assigned === 'CT' ? accountSkins.ct : accountSkins.t) : null;
+    player.skins=normalizeSkinLoadout(sideSkins || skins);
     player.agents=normalizeAgentLoadout(agents);player.agentId=player.agents[assigned];
+    player.accountId=accountId||null;player.statsFlushed={kills:0,deaths:0};
     this.players.set(id, player); this.clients.set(id, socket);
     if(!this.hostId)this.hostId=id;
     if (this.match.status==='ended'||(this.mode === 'defuse' && ['live', 'ended'].includes(this.round.phase))) { player.alive = false; player.health = 0; player.respawnAt = 0; }
@@ -277,6 +281,12 @@ export class GameRoom {
   removePlayer(id) {
     const player = this.players.get(id);
     if (!player) return;
+    // 比赛中途退出：把未结算的击杀/死亡补进账户；endMatch 已结算过则跳过。
+    if (this.accounts && player.accountId && !player.bot && this.match.status !== 'ended') {
+      const flushed = player.statsFlushed || { kills: 0, deaths: 0 };
+      const kills = player.kills - flushed.kills, deaths = player.deaths - flushed.deaths;
+      if (kills > 0 || deaths > 0) this.accounts.recordSkirmish(player.accountId, { kills, deaths });
+    }
     this.releaseBot(player.controllerId||id);
     if(player.botAI?.utility&&!player.botAI.utility.released)this.utilityClaims?.delete(player.botAI.utility.key);
     if (player.hasBomb) this.dropBomb(player);
@@ -527,6 +537,13 @@ export class GameRoom {
   endMatch(winnerTeamId,reason){
     if(this.match.status==='ended')return;
     Object.assign(this.match,{status:'ended',winnerTeamId,reason,endedAt:this.clock()});
+    if(this.accounts){
+      for(const p of this.players.values()){
+        if(p.bot||!p.accountId)continue;
+        this.accounts.recordMatch(p.accountId,{kills:p.kills,deaths:p.deaths,win:p.teamId===winnerTeamId});
+        p.statsFlushed={kills:p.kills,deaths:p.deaths};
+      }
+    }
     Object.assign(this.round,{phase:'matchEnded',phaseEndsAt:0,winner:this.teamSides[winnerTeamId],reason});
     this.pendingTransition=null;this.grenades.clear();this.defuseKits=[];
     for(const p of this.players.values()){p.respawnAt=0;p.reloadEndsAt=0;p.pendingFire=false;this.cancelGrenade(p,'match');p.input=neutralInput();p.effectiveInput=neutralInput();p.vx=p.vy=p.vz=0;}

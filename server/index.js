@@ -12,6 +12,7 @@ import { botCount } from '../shared/match-rules.js';
 import { initPhysics, hasWorld, activateWorld } from '../shared/physics.js';
 import { getMap, DEFAULT_MAP, resolveMapId, normalizeMapPool, mapIds } from '../shared/maps/registry.js';
 import { GameRoom, TICK_RATE, SNAPSHOT_RATE } from './game.js';
+import { createAccountStore } from './accounts.js';
 import {ServerPerformance} from './performance-metrics.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -97,7 +98,7 @@ function joinSettings(msg) {
 }
 
 /** Start the authoritative server after loading collision geometry. No external services. */
-export async function startGameServer({ port = Number(process.env.PORT || 3000), host = process.env.HOST || '0.0.0.0', staticDir = path.join(ROOT, 'dist'), rules = {} } = {}) {
+export async function startGameServer({ port = Number(process.env.PORT || 3000), host = process.env.HOST || '0.0.0.0', staticDir = path.join(ROOT, 'dist'), rules = {}, dataDir = process.env.DATA_DIR || path.join(ROOT, 'data') } = {}) {
   // Warm every registered map up front: a room needs its collision world present
   // synchronously when it is created, and the join handler cannot await. Worlds
   // are still per-map, so the cost is paid once per server process.
@@ -108,6 +109,7 @@ export async function startGameServer({ port = Number(process.env.PORT || 3000),
   const rooms = new Map();
   const maxRooms = Math.max(1, Math.min(100, Number(process.env.MAX_ROOMS) || 12));
   const startedAt = Date.now();
+  const accounts = createAccountStore({ dataDir });
   const performanceMetrics=new ServerPerformance();
   const publicDir = path.join(ROOT, 'public');
   const server = createServer(async (req, res) => {
@@ -161,10 +163,50 @@ export async function startGameServer({ port = Number(process.env.PORT || 3000),
         socket.listRoomsAt=now;
         send(socket,{type:'rooms',rooms:[...rooms.values()].filter(r=>r.humanCount>0).map(r=>({code:r.code,mode:r.mode,humans:r.humanCount,bots:r.botCount,scores:r.scores,phase:r.round.phase,joinable:r.humanCount<10&&r.match.status!=='ended'})).sort((a,b)=>Number(b.joinable)-Number(a.joinable)||b.humans-a.humans)});return;
       }
+      if (msg.type === 'register' || msg.type === 'login' || msg.type === 'loginToken') {
+        if (socket.authLockUntil && now < socket.authLockUntil) { error(socket, 'AUTH_LOCKED', '尝试过于频繁，请 60 秒后再试。'); return; }
+        if (now - (socket.authAt || 0) < 400) { error(socket, 'AUTH_RATE', '操作过于频繁，请稍后再试。'); return; }
+        socket.authAt = now;
+        const result = msg.type === 'loginToken'
+          ? accounts.loginToken(typeof msg.token === 'string' ? msg.token : '')
+          : accounts[msg.type](msg.username, msg.password);
+        if (!result.ok) {
+          // 令牌过期不算暴力破解尝试；密码错误才累计锁定。
+          if (msg.type !== 'loginToken' && (socket.authFailures = (socket.authFailures || 0) + 1) >= 5) socket.authLockUntil = now + 60000;
+          error(socket, result.code, result.message); return;
+        }
+        socket.authFailures = 0; socket.accountId = result.accountId;
+        send(socket, { type: 'authOk', token: result.token, account: result.account });
+        return;
+      }
+      if (msg.type === 'logout') {
+        if (typeof msg.token === 'string') accounts.logoutToken(msg.token);
+        socket.accountId = null;
+        send(socket, { type: 'loggedOut' });
+        return;
+      }
+      if (msg.type === 'saveProfile') {
+        if (!socket.accountId) { error(socket, 'NOT_AUTHED', '请先登录账户。'); return; }
+        if (now - (socket.saveProfileAt || 0) < 250) return;
+        socket.saveProfileAt = now;
+        const profile = accounts.saveProfile(socket.accountId, msg);
+        if (profile) send(socket, { type: 'profileSaved', account: profile });
+        return;
+      }
       if (msg.type === 'join') {
         if (socket.playerId) { error(socket, 'ALREADY_JOINED', '当前连接已经加入房间。'); return; }
         const settings = joinSettings(msg);
         if (settings.error) { error(socket, 'BAD_JOIN', settings.error); return; }
+        // 已登录账户：名字、皮肤、探员以账户为准，客户端 join 里的化妆品字段被忽略。
+        if (socket.accountId) {
+          const record = accounts.getRecord(socket.accountId);
+          if (record) {
+            settings.accountId = socket.accountId;
+            settings.name = record.name || settings.name;
+            settings.accountSkins = { ct: record.skins.ct, t: record.skins.t };
+            settings.agents = record.agents;
+          }
+        }
         if (!settings.room) { do { settings.room = randomBytes(3).toString('hex').toUpperCase(); } while (rooms.has(settings.room)); }
         let room = rooms.get(settings.room), created = false;
         if(msg.existing===true&&!room){error(socket,'ROOM_GONE','房间已经关闭，请在大厅选择有玩家的房间。');return;}
@@ -174,7 +216,7 @@ export async function startGameServer({ port = Number(process.env.PORT || 3000),
           // whole life so everyone loads the same scene.
           const mapId = pickMapId(settings.maps);
           if (!hasWorld(mapId)) { error(socket, 'MAP_UNAVAILABLE', `地图 ${getMap(mapId).name} 资源尚未就绪，请稍后重试。`); return; }
-          room = new GameRoom(settings.room, { mode: settings.mode, bots: settings.bots, rules, mapId });
+          room = new GameRoom(settings.room, { mode: settings.mode, bots: settings.bots, rules, mapId, accounts });
           room.mapPool = settings.maps; rooms.set(settings.room, room); created = true;
         }
         try {
@@ -207,11 +249,19 @@ export async function startGameServer({ port = Number(process.env.PORT || 3000),
       } else if(msg.type==='equipSkin'){
         if(now-(socket.equipSkinAt||0)<250){error(socket,'SKIN_RATE','更换过于频繁，请稍后重试。');return;}
         socket.equipSkinAt=now;const result=room.equipSkin(socket.playerId,msg.weapon,msg.skin);
-        if(!result.ok)error(socket,'SKIN_REJECTED',result.message);else send(socket,{type:'skinEquipped',...result});
+        if(!result.ok)error(socket,'SKIN_REJECTED',result.message);
+        else{
+          if(socket.accountId)accounts.updateSkin(socket.accountId,msg.team||room.players.get(socket.playerId)?.team,msg.weapon,msg.skin);
+          send(socket,{type:'skinEquipped',...result});
+        }
       } else if(msg.type==='equipAgent'){
         if(now-(socket.equipAgentAt||0)<250){error(socket,'AGENT_RATE','更换过于频繁，请稍后重试。');return;}
         socket.equipAgentAt=now;const result=room.equipAgent(socket.playerId,msg.agent);
-        if(!result.ok)error(socket,'AGENT_REJECTED',result.message);else send(socket,{type:'agentEquipped',...result});
+        if(!result.ok)error(socket,'AGENT_REJECTED',result.message);
+        else{
+          if(socket.accountId)accounts.updateAgent(socket.accountId,result.team,result.agent);
+          send(socket,{type:'agentEquipped',...result});
+        }
       } else if(msg.type==='refund'){
         if(now-socket.buyAt<250){error(socket,'BUY_RATE','请稍后再退还。');return;}
         socket.buyAt=now;const result=room.refund(socket.playerId,msg.weapon);
@@ -267,6 +317,7 @@ export async function startGameServer({ port = Number(process.env.PORT || 3000),
   let closed = false;
   const close = async () => {
     if (closed) return; closed = true; clearInterval(tickTimer); clearInterval(heartbeatTimer);
+    accounts.flush();
     for (const socket of wss.clients) socket.terminate();
     await Promise.all([new Promise(resolve => wss.close(resolve)), new Promise(resolve => server.close(resolve))]); rooms.clear();
   };

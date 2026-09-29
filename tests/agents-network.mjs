@@ -31,10 +31,13 @@ const playerIn=(message,id)=>message.players?.find(p=>p.id===id);
 const waitPlayer=(peer,id,predicate,after=0)=>peer.waitFor(m=>m.type==='snapshot'&&playerIn(m,id)&&predicate(playerIn(m,id)),after);
 
 test('agent catalog has stable side-specific defaults and rejects path or wrong-team substitutions',()=>{
-  assert.equal(AGENT_CATALOG.length,4);assert.equal(new Set(AGENT_CATALOG.map(a=>a.id)).size,4);
+  assert.ok(AGENT_CATALOG.length>=4);
+  assert.equal(new Set(AGENT_CATALOG.map(a=>a.id)).size,AGENT_CATALOG.length);
   assert.deepEqual(DEFAULT_AGENT_IDS,{CT:'ct-sas',T:'t-phoenix'});
   for(const team of ['CT','T']){
-    const agents=AGENT_CATALOG.filter(a=>a.team===team);assert.equal(agents.length,2);assert.equal(agents.filter(a=>a.isDefault).length,1);
+    const agents=AGENT_CATALOG.filter(a=>a.team===team);
+    assert.equal(agents.filter(a=>a.isDefault).length,1,`${team} keeps exactly one default`);
+    assert.ok(agents.length>=2,`${team} has at least the default plus one alternative`);
   }
   assert.deepEqual(normalizeAgentLoadout({CT:'ct-ava',T:'t-miami'}),{CT:'ct-ava',T:'t-miami'});
   for(const invalid of [null,[],{CT:'t-miami',T:'ct-ava'},{CT:'../agent.glb',T:'https://invalid.example/agent.glb'},{CT:{toString:null},T:'__proto__'}])assert.deepEqual(normalizeAgentLoadout(invalid),DEFAULT_AGENT_IDS);

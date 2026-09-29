@@ -1,6 +1,9 @@
 // 「库存」视图（参考图 4）：搜索 / 筛选 / 排序 + 稀有度色条网格 + 展示品 + 详情侧栏。
 // 皮肤数据复用 shared/skins.js；装备走 team-loadout（CT/T 各一套），下载走 skin-assets 管线。
 import { SKINS, getSkin } from '../shared/skins.js';
+import { GLOVES, getGlove, DEFAULT_GLOVE } from '../shared/gloves.js';
+import { readGloveLoadout, saveGloveLoadout } from './loadout-view.js';
+import { loadGloveArms } from './agent-arms.js';
 import { getWeapon } from '../shared/weapons.js';
 import { AGENT_CATALOG, getAgent } from '../shared/agents.js';
 import { getTeamLoadout, setTeamSkin, equippedSkinId } from './team-loadout.js';
@@ -24,6 +27,7 @@ const FILTERS = [
   { key: 'all', label: '全部' },
   { key: 'gear', label: '装备' },
   { key: 'agents', label: '探员' },
+  { key: 'gloves', label: '手套' },
   { key: 'showcase', label: '展示品' },
   { key: 'art', label: '艺术作品', locked: true },
   { key: 'crates', label: '武器箱', locked: true },
@@ -107,19 +111,24 @@ export class InventoryView {
       list = SHOWCASE.map(s => ({ showcase: s }));
     } else if (this.filter === 'agents') {
       list = AGENT_CATALOG.map(a => ({ agent: a }));
+    } else if (this.filter === 'gloves') {
+      list = GLOVES.map(g => ({ glove: g }));
     } else if (this.filter === 'gear') {
       list = SKINS.map(s => ({ skin: s }));
     } else {
-      list = [...SKINS.map(s => ({ skin: s })), ...AGENT_CATALOG.map(a => ({ agent: a })), ...SHOWCASE.map(s => ({ showcase: s }))];
+      list = [...SKINS.map(s => ({ skin: s })), ...AGENT_CATALOG.map(a => ({ agent: a })), ...GLOVES.map(g => ({ glove: g })), ...SHOWCASE.map(s => ({ showcase: s }))];
     }
     if (this.query) {
-      list = list.filter(({ skin, agent, showcase }) => {
-        const text = skin ? `${skin.name} ${skin.englishName || ''} ${weaponName(skin.weapon)}` : agent ? `${agent.name} ${agent.id}` : `${showcase.name}`;
+      list = list.filter(({ skin, agent, glove, showcase }) => {
+        const text = skin ? `${skin.name} ${skin.englishName || ''} ${weaponName(skin.weapon)}`
+          : agent ? `${agent.name} ${agent.id}`
+          : glove ? `${glove.name} ${glove.englishName || ''} ${glove.family}`
+          : `${showcase.name}`;
         return text.toLowerCase().includes(this.query);
       });
     }
     if (this.sort === 'name') {
-      const label = it => it.skin ? it.skin.name : it.agent ? it.agent.name : it.showcase.name;
+      const label = it => it.skin ? it.skin.name : it.agent ? it.agent.name : it.glove ? it.glove.name : it.showcase.name;
       list.sort((a, b) => label(a).localeCompare(label(b), 'zh-Hans-CN'));
     } else if (this.sort === 'rarity') {
       list.sort((a, b) => (b.skin ? rarityRank(b.skin) : -1) - (a.skin ? rarityRank(a.skin) : -1));
@@ -158,6 +167,12 @@ export class InventoryView {
         <span class="inv-thumb inv-thumb-agent"><img src="${agentPreview(agent.id)}" alt="${agent.name}" loading="lazy"><i class="rarity-bar" style="background:#4b69ff"></i></span>
         <b>探员</b><small>${agent.name}</small>`;
       card.addEventListener('click', () => { this.detail = { agent }; this.render(); });
+    } else if (entry.glove) {
+      const glove = entry.glove;
+      card.innerHTML = `
+        <span class="inv-thumb inv-thumb-agent"><img src="${glove.preview}" alt="${glove.name}" loading="lazy"><i class="rarity-bar" style="background:#c98b4a"></i></span>
+        <b>${glove.family}</b><small>${glove.name}</small>`;
+      card.addEventListener('click', () => { this.detail = { glove }; this.render(); });
     } else {
       const show = entry.showcase;
       card.className += ' inv-card-showcase';
@@ -215,6 +230,22 @@ export class InventoryView {
       btn.textContent = '打开探员仓库';
       btn.addEventListener('click', () => this.onOpenAgents());
       actions.append(btn);
+    } else if (d.glove) {
+      const glove = d.glove;
+      art.innerHTML = `<img class="art-agent" src="${glove.preview}" alt="${glove.name}"><i class="rarity-bar" style="background:#c98b4a"></i>`;
+      title.textContent = `${glove.family} | ${glove.name}`;
+      sub.textContent = '手套 · 只改变外观，战斗属性一致';
+      for (const [k, v] of [['品质', glove.family], ['外观', '崭新出厂']]) {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${k}</span><b>${v}</b>`;
+        meta.append(li);
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'inv-equip' + (readGloveLoadout() === glove.id ? ' is-on' : '');
+      btn.textContent = readGloveLoadout() === glove.id ? '已装备' : '装备';
+      btn.addEventListener('click', () => this.equipGlove(glove));
+      actions.append(btn);
     } else {
       const show = d.showcase;
       art.innerHTML = `<i class="showcase-art art-${show.kind}"></i>`;
@@ -245,10 +276,30 @@ export class InventoryView {
         this.note(`下载 ${skin.name} · ${Math.min(100, Math.round(bytes / skin.bytes * 100))}%`);
       }});
       setTeamSkin(team, skin.weapon, skin.id);
-      await this.onEquipServer(skin);
+      await this.onEquipServer(skin, team);
       this.note(`已装备 ${skin.name}（${team}）`);
     } catch (error) {
       this.note(`未能装备：${error.message}`);
+    } finally {
+      this.busy = false;
+      this.render();
+    }
+  }
+
+  /** 手套装备：只改外观，本地持久化；先下载第一人称手套模型 */
+  async equipGlove(glove) {
+    if (this.busy) return;
+    this.busy = true;
+    this.renderDetail();
+    try {
+      await loadGloveArms(glove.id, { onProgress: p => {
+        const bytes = typeof p === 'number' ? p : p?.bytes || p?.loaded || 0;
+        this.note(`下载 ${glove.name} · ${(bytes / 1048576).toFixed(1)} MB`);
+      }});
+      saveGloveLoadout(glove.id);
+      this.note(`已装备 ${glove.name}（${glove.family}）`);
+    } catch (error) {
+      this.note(`未能装备：${error?.message || '下载失败'}`);
     } finally {
       this.busy = false;
       this.render();

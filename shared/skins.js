@@ -821,7 +821,7 @@ export const SKINS = Object.freeze([
   {
     "id": "elite-paintkit-cu-elites-urbanstorm-tag",
     "weapon": "elite",
-    "name": "#PaintKit_cu_elites_urbanstorm_Tag",
+    "name": "都市冲击",
     "englishName": "Dual Berettas | #PaintKit_cu_elites_urbanstorm_Tag",
     "model": "assets/weapons/cs2-full/elite-paintkit-cu-elites-urbanstorm-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/elite-paintkit-cu-elites-urbanstorm-tag.webp",
@@ -891,7 +891,7 @@ export const SKINS = Object.freeze([
   {
     "id": "elite-paintkit-aq-famas-contour",
     "weapon": "elite",
-    "name": "PaintKit_aq_famas_contour",
+    "name": "卡特尔",
     "englishName": "Dual Berettas | PaintKit_aq_famas_contour",
     "model": "assets/weapons/cs2-full/elite-paintkit-aq-famas-contour.glb",
     "preview": "assets/weapons/cs2-full/previews/elite-paintkit-aq-famas-contour.webp",
@@ -1031,7 +1031,7 @@ export const SKINS = Object.freeze([
   {
     "id": "elite-paintkit-hy-numbers-green-tag",
     "weapon": "elite",
-    "name": "#PaintKit_hy_numbers_green_Tag",
+    "name": "暗网总机",
     "englishName": "Dual Berettas | #PaintKit_hy_numbers_green_Tag",
     "model": "assets/weapons/cs2-full/elite-paintkit-hy-numbers-green-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/elite-paintkit-hy-numbers-green-tag.webp",
@@ -1101,7 +1101,7 @@ export const SKINS = Object.freeze([
   {
     "id": "elite-paintkit-cu-dual-elites-evil-flora-tag",
     "weapon": "elite",
-    "name": "#PaintKit_cu_dual_elites_evil_flora_Tag",
+    "name": "食人花",
     "englishName": "Dual Berettas | #PaintKit_cu_dual_elites_evil_flora_Tag",
     "model": "assets/weapons/cs2-full/elite-paintkit-cu-dual-elites-evil-flora-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/elite-paintkit-cu-dual-elites-evil-flora-tag.webp",
@@ -1367,7 +1367,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-aq-famas-contour",
     "weapon": "p250",
-    "name": "PaintKit_aq_famas_contour",
+    "name": "卡特尔",
     "englishName": "P250 | PaintKit_aq_famas_contour",
     "model": "assets/weapons/cs2-full/p250-paintkit-aq-famas-contour.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-aq-famas-contour.webp",
@@ -1381,7 +1381,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-cu-p250-mandala-tag",
     "weapon": "p250",
-    "name": "#PaintKit_cu_p250_mandala_Tag",
+    "name": "死亡轮回",
     "englishName": "P250 | #PaintKit_cu_p250_mandala_Tag",
     "model": "assets/weapons/cs2-full/p250-paintkit-cu-p250-mandala-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-cu-p250-mandala-tag.webp",
@@ -1395,7 +1395,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-cu-fiveseven-augmented",
     "weapon": "p250",
-    "name": "PaintKit_cu_fiveseven_augmented",
+    "name": "元素轮廓",
     "englishName": "P250 | PaintKit_cu_fiveseven_augmented",
     "model": "assets/weapons/cs2-full/p250-paintkit-cu-fiveseven-augmented.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-cu-fiveseven-augmented.webp",
@@ -1605,7 +1605,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-aq-p250-verdigris-tag",
     "weapon": "p250",
-    "name": "#PaintKit_aq_p250_verdigris_Tag",
+    "name": "铜绿",
     "englishName": "P250 | #PaintKit_aq_p250_verdigris_Tag",
     "model": "assets/weapons/cs2-full/p250-paintkit-aq-p250-verdigris-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-aq-p250-verdigris-tag.webp",
@@ -1619,7 +1619,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-gs-p250-inferno-tag",
     "weapon": "p250",
-    "name": "#PaintKit_gs_p250_inferno_Tag",
+    "name": "炼狱小镇",
     "englishName": "P250 | #PaintKit_gs_p250_inferno_Tag",
     "model": "assets/weapons/cs2-full/p250-paintkit-gs-p250-inferno-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-gs-p250-inferno-tag.webp",
@@ -1661,7 +1661,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-cu-p250-infect-tag",
     "weapon": "p250",
-    "name": "#PaintKit_cu_p250_infect_Tag",
+    "name": "污染物",
     "englishName": "P250 | #PaintKit_cu_p250_infect_Tag",
     "model": "assets/weapons/cs2-full/p250-paintkit-cu-p250-infect-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-cu-p250-infect-tag.webp",
@@ -1689,7 +1689,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-gs-p250-cybershell-tag",
     "weapon": "p250",
-    "name": "#PaintKit_gs_p250_cybershell_Tag",
+    "name": "赛博先锋",
     "englishName": "P250 | #PaintKit_gs_p250_cybershell_Tag",
     "model": "assets/weapons/cs2-full/p250-paintkit-gs-p250-cybershell-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-gs-p250-cybershell-tag.webp",
@@ -1717,7 +1717,7 @@ export const SKINS = Object.freeze([
   {
     "id": "p250-paintkit-gs-p250-visions-tag",
     "weapon": "p250",
-    "name": "#PaintKit_gs_p250_visions_Tag",
+    "name": "迷人幻象",
     "englishName": "P250 | #PaintKit_gs_p250_visions_Tag",
     "model": "assets/weapons/cs2-full/p250-paintkit-gs-p250-visions-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/p250-paintkit-gs-p250-visions-tag.webp",
@@ -2025,7 +2025,7 @@ export const SKINS = Object.freeze([
   {
     "id": "fiveseven-paintkit-cu-fiveseven-augmented-tag",
     "weapon": "fiveseven",
-    "name": "#PaintKit_cu_fiveseven_augmented_Tag",
+    "name": "三位一体",
     "englishName": "Five-SeveN | #PaintKit_cu_fiveseven_augmented_Tag",
     "model": "assets/weapons/cs2-full/fiveseven-paintkit-cu-fiveseven-augmented-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/fiveseven-paintkit-cu-fiveseven-augmented-tag.webp",
@@ -2123,7 +2123,7 @@ export const SKINS = Object.freeze([
   {
     "id": "fiveseven-paintkit-cu-five-seven-angry-tag",
     "weapon": "fiveseven",
-    "name": "#PaintKit_cu_five_seven_angry_Tag",
+    "name": "怒氓",
     "englishName": "Five-SeveN | #PaintKit_cu_five_seven_angry_Tag",
     "model": "assets/weapons/cs2-full/fiveseven-paintkit-cu-five-seven-angry-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/fiveseven-paintkit-cu-five-seven-angry-tag.webp",
@@ -2165,7 +2165,7 @@ export const SKINS = Object.freeze([
   {
     "id": "fiveseven-paintkit-cu-five-seven-diary-tag",
     "weapon": "fiveseven",
-    "name": "#PaintKit_cu_five_seven_diary_Tag",
+    "name": "童话城堡",
     "englishName": "Five-SeveN | #PaintKit_cu_five_seven_diary_Tag",
     "model": "assets/weapons/cs2-full/fiveseven-paintkit-cu-five-seven-diary-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/fiveseven-paintkit-cu-five-seven-diary-tag.webp",
@@ -2179,7 +2179,7 @@ export const SKINS = Object.freeze([
   {
     "id": "fiveseven-paintkit-aa-fade-red-blue-tag",
     "weapon": "fiveseven",
-    "name": "#PaintKit_aa_fade_red_blue_Tag",
+    "name": "蓝莓樱桃",
     "englishName": "Five-SeveN | #PaintKit_aa_fade_red_blue_Tag",
     "model": "assets/weapons/cs2-full/fiveseven-paintkit-aa-fade-red-blue-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/fiveseven-paintkit-aa-fade-red-blue-tag.webp",
@@ -2431,7 +2431,7 @@ export const SKINS = Object.freeze([
   {
     "id": "deagle-paintkit-aq-deagle-naga-tag",
     "weapon": "deagle",
-    "name": "#PaintKit_aq_deagle_naga_Tag",
+    "name": "纳迦蛇神",
     "englishName": "Desert Eagle | #PaintKit_aq_deagle_naga_Tag",
     "model": "assets/weapons/cs2-full/deagle-paintkit-aq-deagle-naga-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/deagle-paintkit-aq-deagle-naga-tag.webp",
@@ -2515,7 +2515,7 @@ export const SKINS = Object.freeze([
   {
     "id": "deagle-paintkit-aq-deserteagle-kumichodragon-tag",
     "weapon": "deagle",
-    "name": "#PaintKit_aq_deserteagle_kumichodragon_Tag",
+    "name": "大佬龙",
     "englishName": "Desert Eagle | #PaintKit_aq_deserteagle_kumichodragon_Tag",
     "model": "assets/weapons/cs2-full/deagle-paintkit-aq-deserteagle-kumichodragon-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/deagle-paintkit-aq-deserteagle-kumichodragon-tag.webp",
@@ -2613,7 +2613,7 @@ export const SKINS = Object.freeze([
   {
     "id": "deagle-paintkit-gs-deagle-exo-tag",
     "weapon": "deagle",
-    "name": "#PaintKit_gs_deagle_exo_Tag",
+    "name": "轻轨",
     "englishName": "Desert Eagle | #PaintKit_gs_deagle_exo_Tag",
     "model": "assets/weapons/cs2-full/deagle-paintkit-gs-deagle-exo-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/deagle-paintkit-gs-deagle-exo-tag.webp",
@@ -2641,7 +2641,7 @@ export const SKINS = Object.freeze([
   {
     "id": "deagle-paintkit-am-numbers-bronze-tag",
     "weapon": "deagle",
-    "name": "#PaintKit_am_numbers_bronze_Tag",
+    "name": "古铜密码",
     "englishName": "Desert Eagle | #PaintKit_am_numbers_bronze_Tag",
     "model": "assets/weapons/cs2-full/deagle-paintkit-am-numbers-bronze-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/deagle-paintkit-am-numbers-bronze-tag.webp",
@@ -2669,7 +2669,7 @@ export const SKINS = Object.freeze([
   {
     "id": "deagle-paintkit-cu-deag-trigger-discipline-tag",
     "weapon": "deagle",
-    "name": "#PaintKit_cu_deag_trigger_discipline_Tag",
+    "name": "后发制人",
     "englishName": "Desert Eagle | #PaintKit_cu_deag_trigger_discipline_Tag",
     "model": "assets/weapons/cs2-full/deagle-paintkit-cu-deag-trigger-discipline-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/deagle-paintkit-cu-deag-trigger-discipline-tag.webp",
@@ -3159,7 +3159,7 @@ export const SKINS = Object.freeze([
   {
     "id": "nova-paintkit-cu-nova-polymer-tag",
     "weapon": "nova",
-    "name": "#PaintKit_cu_nova_polymer_Tag",
+    "name": "一见青心",
     "englishName": "Nova | #PaintKit_cu_nova_polymer_Tag",
     "model": "assets/weapons/cs2-full/nova-paintkit-cu-nova-polymer-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/nova-paintkit-cu-nova-polymer-tag.webp",
@@ -3173,7 +3173,7 @@ export const SKINS = Object.freeze([
   {
     "id": "nova-paintkit-sp-nova-wind-dispersal-tag",
     "weapon": "nova",
-    "name": "#PaintKit_sp_nova_wind_dispersal_Tag",
+    "name": "随风",
     "englishName": "Nova | #PaintKit_sp_nova_wind_dispersal_Tag",
     "model": "assets/weapons/cs2-full/nova-paintkit-sp-nova-wind-dispersal-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/nova-paintkit-sp-nova-wind-dispersal-tag.webp",
@@ -3453,7 +3453,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mag7-paintkit-gs-mag7-praetorian-tag",
     "weapon": "mag7",
-    "name": "#PaintKit_gs_mag7_praetorian_Tag",
+    "name": "禁卫军",
     "englishName": "MAG-7 | #PaintKit_gs_mag7_praetorian_Tag",
     "model": "assets/weapons/cs2-full/mag7-paintkit-gs-mag7-praetorian-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mag7-paintkit-gs-mag7-praetorian-tag.webp",
@@ -3579,7 +3579,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mag7-paintkit-gs-mag7-popdog-tag",
     "weapon": "mag7",
-    "name": "#PaintKit_gs_mag7_popdog_Tag",
+    "name": "碰碰狗",
     "englishName": "MAG-7 | #PaintKit_gs_mag7_popdog_Tag",
     "model": "assets/weapons/cs2-full/mag7-paintkit-gs-mag7-popdog-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mag7-paintkit-gs-mag7-popdog-tag.webp",
@@ -3873,7 +3873,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mp9-paintkit-cu-mp9-deadly-poison-tag",
     "weapon": "mp9",
-    "name": "#PaintKit_cu_mp9_deadly_poison_Tag",
+    "name": "致命毒药",
     "englishName": "MP9 | #PaintKit_cu_mp9_deadly_poison_Tag",
     "model": "assets/weapons/cs2-full/mp9-paintkit-cu-mp9-deadly-poison-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mp9-paintkit-cu-mp9-deadly-poison-tag.webp",
@@ -4055,7 +4055,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mp9-paintkit-cu-mp9-hydra-tag",
     "weapon": "mp9",
-    "name": "#PaintKit_cu_mp9_hydra_Tag",
+    "name": "九头蛇",
     "englishName": "MP9 | #PaintKit_cu_mp9_hydra_Tag",
     "model": "assets/weapons/cs2-full/mp9-paintkit-cu-mp9-hydra-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mp9-paintkit-cu-mp9-hydra-tag.webp",
@@ -4083,7 +4083,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mp9-paintkit-cu-mp9-food-chain-tag",
     "weapon": "mp9",
-    "name": "#PaintKit_cu_mp9_food_chain_Tag",
+    "name": "爆裂食物链",
     "englishName": "MP9 | #PaintKit_cu_mp9_food_chain_Tag",
     "model": "assets/weapons/cs2-full/mp9-paintkit-cu-mp9-food-chain-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mp9-paintkit-cu-mp9-food-chain-tag.webp",
@@ -4377,7 +4377,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mp7-paintkit-sp-mp7-impire-tag",
     "weapon": "mp7",
-    "name": "#PaintKit_sp_mp7_impire_Tag",
+    "name": "帝国",
     "englishName": "MP7 | #PaintKit_sp_mp7_impire_Tag",
     "model": "assets/weapons/cs2-full/mp7-paintkit-sp-mp7-impire-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mp7-paintkit-sp-mp7-impire-tag.webp",
@@ -4475,7 +4475,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mp7-paintkit-cu-mp7-racketeer-tag",
     "weapon": "mp7",
-    "name": "#PaintKit_cu_mp7_racketeer_Tag",
+    "name": "恶作剧",
     "englishName": "MP7 | #PaintKit_cu_mp7_racketeer_Tag",
     "model": "assets/weapons/cs2-full/mp7-paintkit-cu-mp7-racketeer-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mp7-paintkit-cu-mp7-racketeer-tag.webp",
@@ -4531,7 +4531,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mp7-paintkit-hy-drywood-green-tag",
     "weapon": "mp7",
-    "name": "#PaintKit_hy_drywood_green_Tag",
+    "name": "绿野迷踪",
     "englishName": "MP7 | #PaintKit_hy_drywood_green_Tag",
     "model": "assets/weapons/cs2-full/mp7-paintkit-hy-drywood-green-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mp7-paintkit-hy-drywood-green-tag.webp",
@@ -5203,7 +5203,7 @@ export const SKINS = Object.freeze([
   {
     "id": "scar20-paintkit-aq-scar20-leak-tag",
     "weapon": "scar20",
-    "name": "#PaintKit_aq_scar20_leak_Tag",
+    "name": "蓝洞",
     "englishName": "SCAR-20 | #PaintKit_aq_scar20_leak_Tag",
     "model": "assets/weapons/cs2-full/scar20-paintkit-aq-scar20-leak-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/scar20-paintkit-aq-scar20-leak-tag.webp",
@@ -5329,7 +5329,7 @@ export const SKINS = Object.freeze([
   {
     "id": "scar20-paintkit-cu-scar-assault-tag",
     "weapon": "scar20",
-    "name": "#PaintKit_cu_scar_assault_Tag",
+    "name": "仓库突击",
     "englishName": "SCAR-20 | #PaintKit_cu_scar_assault_Tag",
     "model": "assets/weapons/cs2-full/scar20-paintkit-cu-scar-assault-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/scar20-paintkit-cu-scar-assault-tag.webp",
@@ -5357,7 +5357,7 @@ export const SKINS = Object.freeze([
   {
     "id": "scar20-paintkit-hy-authority-purple-tag",
     "weapon": "scar20",
-    "name": "#PaintKit_hy_authority_purple_Tag",
+    "name": "大宪章",
     "englishName": "SCAR-20 | #PaintKit_hy_authority_purple_Tag",
     "model": "assets/weapons/cs2-full/scar20-paintkit-hy-authority-purple-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/scar20-paintkit-hy-authority-purple-tag.webp",
@@ -5581,7 +5581,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a4-paintkit-cu-m4a4-ancestral-tag",
     "weapon": "m4a4",
-    "name": "#PaintKit_cu_m4a4_ancestral_Tag",
+    "name": "龙王",
     "englishName": "M4A4 | #PaintKit_cu_m4a4_ancestral_Tag",
     "model": "assets/weapons/cs2-full/m4a4-paintkit-cu-m4a4-ancestral-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a4-paintkit-cu-m4a4-ancestral-tag.webp",
@@ -5651,7 +5651,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a4-paintkit-gs-m4a4-pioneer-tag",
     "weapon": "m4a4",
-    "name": "#PaintKit_gs_m4a4_pioneer_Tag",
+    "name": "战场之星",
     "englishName": "M4A4 | #PaintKit_gs_m4a4_pioneer_Tag",
     "model": "assets/weapons/cs2-full/m4a4-paintkit-gs-m4a4-pioneer-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a4-paintkit-gs-m4a4-pioneer-tag.webp",
@@ -5777,7 +5777,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a4-paintkit-gs-m4a4-emperor-tag",
     "weapon": "m4a4",
-    "name": "#PaintKit_gs_m4a4_emperor_Tag",
+    "name": "皇帝",
     "englishName": "M4A4 | #PaintKit_gs_m4a4_emperor_Tag",
     "model": "assets/weapons/cs2-full/m4a4-paintkit-gs-m4a4-emperor-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a4-paintkit-gs-m4a4-emperor-tag.webp",
@@ -5819,7 +5819,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a4-paintkit-cu-m4a4-cyberpunk-tag",
     "weapon": "m4a4",
-    "name": "#PaintKit_cu_m4a4_cyberpunk_Tag",
+    "name": "赛博",
     "englishName": "M4A4 | #PaintKit_cu_m4a4_cyberpunk_Tag",
     "model": "assets/weapons/cs2-full/m4a4-paintkit-cu-m4a4-cyberpunk-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a4-paintkit-cu-m4a4-cyberpunk-tag.webp",
@@ -5833,7 +5833,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a4-paintkit-cu-csgo-camo-tag",
     "weapon": "m4a4",
-    "name": "#PaintKit_cu_csgo_camo_Tag",
+    "name": "全球攻势",
     "englishName": "M4A4 | #PaintKit_cu_csgo_camo_Tag",
     "model": "assets/weapons/cs2-full/m4a4-paintkit-cu-csgo-camo-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a4-paintkit-cu-csgo-camo-tag.webp",
@@ -5847,7 +5847,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a4-paintkit-cu-m4a4-love-tag",
     "weapon": "m4a4",
-    "name": "#PaintKit_cu_m4a4_love_Tag",
+    "name": "活色生香",
     "englishName": "M4A4 | #PaintKit_cu_m4a4_love_Tag",
     "model": "assets/weapons/cs2-full/m4a4-paintkit-cu-m4a4-love-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a4-paintkit-cu-m4a4-love-tag.webp",
@@ -5889,7 +5889,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a4-paintkit-cu-m4a4-elite-tactical-tag",
     "weapon": "m4a4",
-    "name": "#PaintKit_cu_m4a4_elite_tactical_Tag",
+    "name": "透明弹匣",
     "englishName": "M4A4 | #PaintKit_cu_m4a4_elite_tactical_Tag",
     "model": "assets/weapons/cs2-full/m4a4-paintkit-cu-m4a4-elite-tactical-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a4-paintkit-cu-m4a4-elite-tactical-tag.webp",
@@ -6127,7 +6127,7 @@ export const SKINS = Object.freeze([
   {
     "id": "ssg08-paintkit-cu-ssg08-necropos-tag",
     "weapon": "ssg08",
-    "name": "#PaintKit_cu_ssg08_necropos_Tag",
+    "name": "通灵者",
     "englishName": "SSG 08 | #PaintKit_cu_ssg08_necropos_Tag",
     "model": "assets/weapons/cs2-full/ssg08-paintkit-cu-ssg08-necropos-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/ssg08-paintkit-cu-ssg08-necropos-tag.webp",
@@ -6281,7 +6281,7 @@ export const SKINS = Object.freeze([
   {
     "id": "ssg08-paintkit-cu-ssg08-chromatic-tag",
     "weapon": "ssg08",
-    "name": "#PaintKit_cu_ssg08_chromatic_Tag",
+    "name": "抖枪",
     "englishName": "SSG 08 | #PaintKit_cu_ssg08_chromatic_Tag",
     "model": "assets/weapons/cs2-full/ssg08-paintkit-cu-ssg08-chromatic-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/ssg08-paintkit-cu-ssg08-chromatic-tag.webp",
@@ -6295,7 +6295,7 @@ export const SKINS = Object.freeze([
   {
     "id": "ssg08-paintkit-am-intelligence-orange-tag",
     "weapon": "ssg08",
-    "name": "#PaintKit_am_intelligence_orange_Tag",
+    "name": "侦测",
     "englishName": "SSG 08 | #PaintKit_am_intelligence_orange_Tag",
     "model": "assets/weapons/cs2-full/ssg08-paintkit-am-intelligence-orange-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/ssg08-paintkit-am-intelligence-orange-tag.webp",
@@ -6617,7 +6617,7 @@ export const SKINS = Object.freeze([
   {
     "id": "tec9-paintkit-gs-tec9-jambiya-tag",
     "weapon": "tec9",
-    "name": "#PaintKit_gs_tec9_jambiya_Tag",
+    "name": "贾姆比亚",
     "englishName": "Tec-9 | #PaintKit_gs_tec9_jambiya_Tag",
     "model": "assets/weapons/cs2-full/tec9-paintkit-gs-tec9-jambiya-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/tec9-paintkit-gs-tec9-jambiya-tag.webp",
@@ -6771,7 +6771,7 @@ export const SKINS = Object.freeze([
   {
     "id": "tec9-paintkit-cu-tec9-bamboo-tag",
     "weapon": "tec9",
-    "name": "#PaintKit_cu_tec9_bamboo_Tag",
+    "name": "青竹伪装",
     "englishName": "Tec-9 | #PaintKit_cu_tec9_bamboo_Tag",
     "model": "assets/weapons/cs2-full/tec9-paintkit-cu-tec9-bamboo-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/tec9-paintkit-cu-tec9-bamboo-tag.webp",
@@ -6841,7 +6841,7 @@ export const SKINS = Object.freeze([
   {
     "id": "tec9-paintkit-hy-ancient-tiles-peach-tag",
     "weapon": "tec9",
-    "name": "#PaintKit_hy_ancient_tiles_peach_Tag",
+    "name": "上古图腾",
     "englishName": "Tec-9 | #PaintKit_hy_ancient_tiles_peach_Tag",
     "model": "assets/weapons/cs2-full/tec9-paintkit-hy-ancient-tiles-peach-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/tec9-paintkit-hy-ancient-tiles-peach-tag.webp",
@@ -7079,7 +7079,7 @@ export const SKINS = Object.freeze([
   {
     "id": "xm1014-paintkit-aq-xm1014-sigla-tag",
     "weapon": "xm1014",
-    "name": "#PaintKit_aq_xm1014_sigla_Tag",
+    "name": "剧毒水银",
     "englishName": "XM1014 | #PaintKit_aq_xm1014_sigla_Tag",
     "model": "assets/weapons/cs2-full/xm1014-paintkit-aq-xm1014-sigla-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/xm1014-paintkit-aq-xm1014-sigla-tag.webp",
@@ -7233,7 +7233,7 @@ export const SKINS = Object.freeze([
   {
     "id": "xm1014-paintkit-cu-xm1014-incinerator-tag",
     "weapon": "xm1014",
-    "name": "#PaintKit_cu_xm1014_incinerator_Tag",
+    "name": "焚烬之鳄",
     "englishName": "XM1014 | #PaintKit_cu_xm1014_incinerator_Tag",
     "model": "assets/weapons/cs2-full/xm1014-paintkit-cu-xm1014-incinerator-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/xm1014-paintkit-cu-xm1014-incinerator-tag.webp",
@@ -7261,7 +7261,7 @@ export const SKINS = Object.freeze([
   {
     "id": "xm1014-paintkit-am-authority-brown-tag",
     "weapon": "xm1014",
-    "name": "#PaintKit_am_authority_brown_Tag",
+    "name": "旧宪章",
     "englishName": "XM1014 | #PaintKit_am_authority_brown_Tag",
     "model": "assets/weapons/cs2-full/xm1014-paintkit-am-authority-brown-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/xm1014-paintkit-am-authority-brown-tag.webp",
@@ -7275,7 +7275,7 @@ export const SKINS = Object.freeze([
   {
     "id": "xm1014-paintkit-am-ancient-warm-tag",
     "weapon": "xm1014",
-    "name": "#PaintKit_am_ancient_warm_Tag",
+    "name": "太古传说",
     "englishName": "XM1014 | #PaintKit_am_ancient_warm_Tag",
     "model": "assets/weapons/cs2-full/xm1014-paintkit-am-ancient-warm-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/xm1014-paintkit-am-ancient-warm-tag.webp",
@@ -7289,7 +7289,7 @@ export const SKINS = Object.freeze([
   {
     "id": "xm1014-paintkit-aq-xm1014-punk-tag",
     "weapon": "xm1014",
-    "name": "#PaintKit_aq_xm1014_punk_Tag",
+    "name": "要抱抱",
     "englishName": "XM1014 | #PaintKit_aq_xm1014_punk_Tag",
     "model": "assets/weapons/cs2-full/xm1014-paintkit-aq-xm1014-punk-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/xm1014-paintkit-aq-xm1014-punk-tag.webp",
@@ -7513,7 +7513,7 @@ export const SKINS = Object.freeze([
   {
     "id": "sawedoff-paintkit-cu-sawedoff-deva-tag",
     "weapon": "sawedoff",
-    "name": "#PaintKit_cu_sawedoff_deva_Tag",
+    "name": "祥和之翼",
     "englishName": "Sawed-Off | #PaintKit_cu_sawedoff_deva_Tag",
     "model": "assets/weapons/cs2-full/sawedoff-paintkit-cu-sawedoff-deva-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/sawedoff-paintkit-cu-sawedoff-deva-tag.webp",
@@ -7737,7 +7737,7 @@ export const SKINS = Object.freeze([
   {
     "id": "sawedoff-paintkit-cu-sawedoff-kisslove-tag",
     "weapon": "sawedoff",
-    "name": "#PaintKit_cu_sawedoff_kisslove_Tag",
+    "name": "么么",
     "englishName": "Sawed-Off | #PaintKit_cu_sawedoff_kisslove_Tag",
     "model": "assets/weapons/cs2-full/sawedoff-paintkit-cu-sawedoff-kisslove-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/sawedoff-paintkit-cu-sawedoff-kisslove-tag.webp",
@@ -7975,7 +7975,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mac10-paintkit-am-mac10-malachite-tag",
     "weapon": "mac10",
-    "name": "#PaintKit_am_mac10_malachite_Tag",
+    "name": "孔雀石",
     "englishName": "MAC-10 | #PaintKit_am_mac10_malachite_Tag",
     "model": "assets/weapons/cs2-full/mac10-paintkit-am-mac10-malachite-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mac10-paintkit-am-mac10-malachite-tag.webp",
@@ -8003,7 +8003,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mac10-paintkit-am-mac10-electricity-tag",
     "weapon": "mac10",
-    "name": "#PaintKit_am_mac10_electricity_Tag",
+    "name": "青金鳄皮",
     "englishName": "MAC-10 | #PaintKit_am_mac10_electricity_Tag",
     "model": "assets/weapons/cs2-full/mac10-paintkit-am-mac10-electricity-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mac10-paintkit-am-mac10-electricity-tag.webp",
@@ -8143,7 +8143,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mac10-paintkit-gs-mac10-fish-bait-tag",
     "weapon": "mac10",
-    "name": "#PaintKit_gs_mac10_fish_bait_Tag",
+    "name": "白鲑鱼",
     "englishName": "MAC-10 | #PaintKit_gs_mac10_fish_bait_Tag",
     "model": "assets/weapons/cs2-full/mac10-paintkit-gs-mac10-fish-bait-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mac10-paintkit-gs-mac10-fish-bait-tag.webp",
@@ -8185,7 +8185,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mac10-paintkit-gs-mac10-dust-crate-tag",
     "weapon": "mac10",
-    "name": "#PaintKit_gs_mac10_dust_crate_Tag",
+    "name": "板条箱",
     "englishName": "MAC-10 | #PaintKit_gs_mac10_dust_crate_Tag",
     "model": "assets/weapons/cs2-full/mac10-paintkit-gs-mac10-dust-crate-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mac10-paintkit-gs-mac10-dust-crate-tag.webp",
@@ -8241,7 +8241,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mac10-paintkit-am-gold-brick-tag",
     "weapon": "mac10",
-    "name": "#PaintKit_am_gold_brick_Tag",
+    "name": "金砖",
     "englishName": "MAC-10 | #PaintKit_am_gold_brick_Tag",
     "model": "assets/weapons/cs2-full/mac10-paintkit-am-gold-brick-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mac10-paintkit-am-gold-brick-tag.webp",
@@ -8255,7 +8255,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mac10-paintkit-cu-mac10-portable-tag",
     "weapon": "mac10",
-    "name": "#PaintKit_cu_mac10_portable_Tag",
+    "name": "战争手柄",
     "englishName": "MAC-10 | #PaintKit_cu_mac10_portable_Tag",
     "model": "assets/weapons/cs2-full/mac10-paintkit-cu-mac10-portable-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mac10-paintkit-cu-mac10-portable-tag.webp",
@@ -8325,7 +8325,7 @@ export const SKINS = Object.freeze([
   {
     "id": "mac10-paintkit-cu-mac10-monkeyflage-tag",
     "weapon": "mac10",
-    "name": "#PaintKit_cu_mac10_monkeyflage_Tag",
+    "name": "萌猴迷彩",
     "englishName": "MAC-10 | #PaintKit_cu_mac10_monkeyflage_Tag",
     "model": "assets/weapons/cs2-full/mac10-paintkit-cu-mac10-monkeyflage-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/mac10-paintkit-cu-mac10-monkeyflage-tag.webp",
@@ -8577,7 +8577,7 @@ export const SKINS = Object.freeze([
   {
     "id": "galilar-paintkit-cu-galil-abrasion-tag",
     "weapon": "galilar",
-    "name": "#PaintKit_cu_galil_abrasion_Tag",
+    "name": "喧闹骷髅",
     "englishName": "Galil AR | #PaintKit_cu_galil_abrasion_Tag",
     "model": "assets/weapons/cs2-full/galilar-paintkit-cu-galil-abrasion-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/galilar-paintkit-cu-galil-abrasion-tag.webp",
@@ -8717,7 +8717,7 @@ export const SKINS = Object.freeze([
   {
     "id": "galilar-paintkit-sp-galil-akoben-tag",
     "weapon": "galilar",
-    "name": "#PaintKit_sp_galil_akoben_Tag",
+    "name": "战吼斑纹",
     "englishName": "Galil AR | #PaintKit_sp_galil_akoben_Tag",
     "model": "assets/weapons/cs2-full/galilar-paintkit-sp-galil-akoben-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/galilar-paintkit-sp-galil-akoben-tag.webp",
@@ -8745,7 +8745,7 @@ export const SKINS = Object.freeze([
   {
     "id": "galilar-paintkit-gs-galil-vandal-tag",
     "weapon": "galilar",
-    "name": "#PaintKit_gs_galil_vandal_Tag",
+    "name": "破坏者",
     "englishName": "Galil AR | #PaintKit_gs_galil_vandal_Tag",
     "model": "assets/weapons/cs2-full/galilar-paintkit-gs-galil-vandal-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/galilar-paintkit-gs-galil-vandal-tag.webp",
@@ -8773,7 +8773,7 @@ export const SKINS = Object.freeze([
   {
     "id": "galilar-paintkit-hy-ruins-red-tag",
     "weapon": "galilar",
-    "name": "#PaintKit_hy_ruins_red_Tag",
+    "name": "废墟黄昏",
     "englishName": "Galil AR | #PaintKit_hy_ruins_red_Tag",
     "model": "assets/weapons/cs2-full/galilar-paintkit-hy-ruins-red-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/galilar-paintkit-hy-ruins-red-tag.webp",
@@ -8787,7 +8787,7 @@ export const SKINS = Object.freeze([
   {
     "id": "galilar-paintkit-cu-galil-chroma-pink-tag",
     "weapon": "galilar",
-    "name": "#PaintKit_cu_galil_chroma_pink_Tag",
+    "name": "迷人眼",
     "englishName": "Galil AR | #PaintKit_cu_galil_chroma_pink_Tag",
     "model": "assets/weapons/cs2-full/galilar-paintkit-cu-galil-chroma-pink-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/galilar-paintkit-cu-galil-chroma-pink-tag.webp",
@@ -8815,7 +8815,7 @@ export const SKINS = Object.freeze([
   {
     "id": "galilar-paintkit-cu-galil-destroyer-tag",
     "weapon": "galilar",
-    "name": "#PaintKit_cu_galil_destroyer_Tag",
+    "name": "毁灭者",
     "englishName": "Galil AR | #PaintKit_cu_galil_destroyer_Tag",
     "model": "assets/weapons/cs2-full/galilar-paintkit-cu-galil-destroyer-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/galilar-paintkit-cu-galil-destroyer-tag.webp",
@@ -9235,7 +9235,7 @@ export const SKINS = Object.freeze([
   {
     "id": "sg553-paintkit-aa-ruins-green-tag",
     "weapon": "sg553",
-    "name": "#PaintKit_aa_ruins_green_Tag",
+    "name": "废墟丛生",
     "englishName": "SG 553 | #PaintKit_aa_ruins_green_Tag",
     "model": "assets/weapons/cs2-full/sg553-paintkit-aa-ruins-green-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/sg553-paintkit-aa-ruins-green-tag.webp",
@@ -9249,7 +9249,7 @@ export const SKINS = Object.freeze([
   {
     "id": "sg553-paintkit-gs-sg553-deathmetal-tag",
     "weapon": "sg553",
-    "name": "#PaintKit_gs_sg553_deathmetal_Tag",
+    "name": "重金属摇滚",
     "englishName": "SG 553 | #PaintKit_gs_sg553_deathmetal_Tag",
     "model": "assets/weapons/cs2-full/sg553-paintkit-gs-sg553-deathmetal-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/sg553-paintkit-gs-sg553-deathmetal-tag.webp",
@@ -9277,7 +9277,7 @@ export const SKINS = Object.freeze([
   {
     "id": "sg553-paintkit-cu-sg553-cyber-dragon-tag",
     "weapon": "sg553",
-    "name": "#PaintKit_cu_sg553_cyber_dragon_Tag",
+    "name": "青龙",
     "englishName": "SG 553 | #PaintKit_cu_sg553_cyber_dragon_Tag",
     "model": "assets/weapons/cs2-full/sg553-paintkit-cu-sg553-cyber-dragon-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/sg553-paintkit-cu-sg553-cyber-dragon-tag.webp",
@@ -9487,7 +9487,7 @@ export const SKINS = Object.freeze([
   {
     "id": "ak47-paintkit-aq-famas-contour",
     "weapon": "ak47",
-    "name": "PaintKit_aq_famas_contour",
+    "name": "卡特尔",
     "englishName": "AK-47 | PaintKit_aq_famas_contour",
     "model": "assets/weapons/cs2-full/ak47-paintkit-aq-famas-contour.glb",
     "preview": "assets/weapons/cs2-full/previews/ak47-paintkit-aq-famas-contour.webp",
@@ -9501,7 +9501,7 @@ export const SKINS = Object.freeze([
   {
     "id": "ak47-paintkit-cu-bizon-citizen",
     "weapon": "ak47",
-    "name": "PaintKit_cu_bizon_citizen",
+    "name": "精英之作",
     "englishName": "AK-47 | PaintKit_cu_bizon_citizen",
     "model": "assets/weapons/cs2-full/ak47-paintkit-cu-bizon-citizen.glb",
     "preview": "assets/weapons/cs2-full/previews/ak47-paintkit-cu-bizon-citizen.webp",
@@ -9753,7 +9753,7 @@ export const SKINS = Object.freeze([
   {
     "id": "ak47-paintkit-gs-ak47-professional-tag",
     "weapon": "ak47",
-    "name": "#PaintKit_gs_ak47_professional_Tag",
+    "name": "墨岩",
     "englishName": "AK-47 | #PaintKit_gs_ak47_professional_Tag",
     "model": "assets/weapons/cs2-full/ak47-paintkit-gs-ak47-professional-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/ak47-paintkit-gs-ak47-professional-tag.webp",
@@ -10033,7 +10033,7 @@ export const SKINS = Object.freeze([
   {
     "id": "m4a1-paintkit-cu-ssg08-necropos",
     "weapon": "m4a1",
-    "name": "PaintKit_cu_ssg08_necropos",
+    "name": "暴怒野兽",
     "englishName": "M4A1-S | PaintKit_cu_ssg08_necropos",
     "model": "assets/weapons/cs2-full/m4a1-paintkit-cu-ssg08-necropos.glb",
     "preview": "assets/weapons/cs2-full/previews/m4a1-paintkit-cu-ssg08-necropos.webp",
@@ -10453,7 +10453,7 @@ export const SKINS = Object.freeze([
   {
     "id": "awp-paintkit-am-awp-glory-tag",
     "weapon": "awp",
-    "name": "#PaintKit_am_awp_glory_Tag",
+    "name": "无畏战神",
     "englishName": "AWP | #PaintKit_am_awp_glory_Tag",
     "model": "assets/weapons/cs2-full/awp-paintkit-am-awp-glory-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/awp-paintkit-am-awp-glory-tag.webp",
@@ -10509,7 +10509,7 @@ export const SKINS = Object.freeze([
   {
     "id": "awp-paintkit-cu-ssg08-necropos",
     "weapon": "awp",
-    "name": "PaintKit_cu_ssg08_necropos",
+    "name": "暴怒野兽",
     "englishName": "AWP | PaintKit_cu_ssg08_necropos",
     "model": "assets/weapons/cs2-full/awp-paintkit-cu-ssg08-necropos.glb",
     "preview": "assets/weapons/cs2-full/previews/awp-paintkit-cu-ssg08-necropos.webp",
@@ -10523,7 +10523,7 @@ export const SKINS = Object.freeze([
   {
     "id": "awp-paintkit-cu-bizon-citizen",
     "weapon": "awp",
-    "name": "PaintKit_cu_bizon_citizen",
+    "name": "精英之作",
     "englishName": "AWP | PaintKit_cu_bizon_citizen",
     "model": "assets/weapons/cs2-full/awp-paintkit-cu-bizon-citizen.glb",
     "preview": "assets/weapons/cs2-full/previews/awp-paintkit-cu-bizon-citizen.webp",
@@ -10663,7 +10663,7 @@ export const SKINS = Object.freeze([
   {
     "id": "awp-paintkit-cu-awp-viper-tag",
     "weapon": "awp",
-    "name": "#PaintKit_cu_awp_viper_Tag",
+    "name": "树蝰",
     "englishName": "AWP | #PaintKit_cu_awp_viper_Tag",
     "model": "assets/weapons/cs2-full/awp-paintkit-cu-awp-viper-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/awp-paintkit-cu-awp-viper-tag.webp",
@@ -10691,7 +10691,7 @@ export const SKINS = Object.freeze([
   {
     "id": "awp-paintkit-cu-awp-wildfire-tag",
     "weapon": "awp",
-    "name": "#PaintKit_cu_awp_wildfire_Tag",
+    "name": "野火",
     "englishName": "AWP | #PaintKit_cu_awp_wildfire_Tag",
     "model": "assets/weapons/cs2-full/awp-paintkit-cu-awp-wildfire-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/awp-paintkit-cu-awp-wildfire-tag.webp",
@@ -11013,7 +11013,7 @@ export const SKINS = Object.freeze([
   {
     "id": "pistol-paintkit-cu-glock-deathtoll-tag",
     "weapon": "pistol",
-    "name": "#PaintKit_cu_glock_deathtoll_Tag",
+    "name": "亡者之寝",
     "englishName": "Glock-18 | #PaintKit_cu_glock_deathtoll_Tag",
     "model": "assets/weapons/cs2-full/pistol-paintkit-cu-glock-deathtoll-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/pistol-paintkit-cu-glock-deathtoll-tag.webp",
@@ -11069,7 +11069,7 @@ export const SKINS = Object.freeze([
   {
     "id": "pistol-paintkit-gs-glock18-award-tag",
     "weapon": "pistol",
-    "name": "#PaintKit_gs_glock18_award_Tag",
+    "name": "皇家军团",
     "englishName": "Glock-18 | #PaintKit_gs_glock18_award_Tag",
     "model": "assets/weapons/cs2-full/pistol-paintkit-gs-glock18-award-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/pistol-paintkit-gs-glock18-award-tag.webp",
@@ -11223,7 +11223,7 @@ export const SKINS = Object.freeze([
   {
     "id": "pistol-paintkit-cu-glock-hero-tag",
     "weapon": "pistol",
-    "name": "#PaintKit_cu_glock_hero_Tag",
+    "name": "烈焰天使",
     "englishName": "Glock-18 | #PaintKit_cu_glock_hero_Tag",
     "model": "assets/weapons/cs2-full/pistol-paintkit-cu-glock-hero-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/pistol-paintkit-cu-glock-hero-tag.webp",
@@ -11265,7 +11265,7 @@ export const SKINS = Object.freeze([
   {
     "id": "pistol-paintkit-gs-glock-polymer-tag",
     "weapon": "pistol",
-    "name": "#PaintKit_gs_glock_polymer_Tag",
+    "name": "一目了然",
     "englishName": "Glock-18 | #PaintKit_gs_glock_polymer_Tag",
     "model": "assets/weapons/cs2-full/pistol-paintkit-gs-glock-polymer-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/pistol-paintkit-gs-glock-polymer-tag.webp",
@@ -11363,7 +11363,7 @@ export const SKINS = Object.freeze([
   {
     "id": "pistol-paintkit-gs-glock-elite-camo-tag",
     "weapon": "pistol",
-    "name": "#PaintKit_gs_glock_elite_camo_Tag",
+    "name": "冬季战术",
     "englishName": "Glock-18 | #PaintKit_gs_glock_elite_camo_Tag",
     "model": "assets/weapons/cs2-full/pistol-paintkit-gs-glock-elite-camo-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/pistol-paintkit-gs-glock-elite-camo-tag.webp",
@@ -11629,7 +11629,7 @@ export const SKINS = Object.freeze([
   {
     "id": "usp-paintkit-gs-usp-voltage-tag",
     "weapon": "usp",
-    "name": "#PaintKit_gs_usp_voltage_Tag",
+    "name": "铅管",
     "englishName": "USP-S | #PaintKit_gs_usp_voltage_Tag",
     "model": "assets/weapons/cs2-full/usp-paintkit-gs-usp-voltage-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/usp-paintkit-gs-usp-voltage-tag.webp",
@@ -11741,7 +11741,7 @@ export const SKINS = Object.freeze([
   {
     "id": "usp-paintkit-cu-usp-krokos-tag",
     "weapon": "usp",
-    "name": "#PaintKit_cu_usp_krokos_Tag",
+    "name": "小绿怪",
     "englishName": "USP-S | #PaintKit_cu_usp_krokos_Tag",
     "model": "assets/weapons/cs2-full/usp-paintkit-cu-usp-krokos-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/usp-paintkit-cu-usp-krokos-tag.webp",
@@ -11755,7 +11755,7 @@ export const SKINS = Object.freeze([
   {
     "id": "usp-paintkit-am-intelligence-magenta-tag",
     "weapon": "usp",
-    "name": "#PaintKit_am_intelligence_magenta_Tag",
+    "name": "锁定",
     "englishName": "USP-S | #PaintKit_am_intelligence_magenta_Tag",
     "model": "assets/weapons/cs2-full/usp-paintkit-am-intelligence-magenta-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/usp-paintkit-am-intelligence-magenta-tag.webp",
@@ -11769,7 +11769,7 @@ export const SKINS = Object.freeze([
   {
     "id": "usp-paintkit-sp-ancient-bright-tag",
     "weapon": "usp",
-    "name": "#PaintKit_sp_ancient_bright_Tag",
+    "name": "远古幻想",
     "englishName": "USP-S | #PaintKit_sp_ancient_bright_Tag",
     "model": "assets/weapons/cs2-full/usp-paintkit-sp-ancient-bright-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/usp-paintkit-sp-ancient-bright-tag.webp",
@@ -11783,7 +11783,7 @@ export const SKINS = Object.freeze([
   {
     "id": "usp-paintkit-gs-usps-hangedman-tag",
     "weapon": "usp",
-    "name": "#PaintKit_gs_usps_hangedman_Tag",
+    "name": "倒吊人",
     "englishName": "USP-S | #PaintKit_gs_usps_hangedman_Tag",
     "model": "assets/weapons/cs2-full/usp-paintkit-gs-usps-hangedman-tag.glb",
     "preview": "assets/weapons/cs2-full/previews/usp-paintkit-gs-usps-hangedman-tag.webp",
