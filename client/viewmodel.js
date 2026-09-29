@@ -9,7 +9,8 @@ import { DEFAULT_SKINS, getSkin } from '../shared/skins.js';
 import { loadedSkin, requestSkin, retainSkin, releaseSkin } from './skin-assets.js';
 import { disposeInstanceAnimation, disposeInstanceSkeletons } from './resource-lifecycle.js';
 import {DEFAULT_AGENT_IDS,getAgent} from '../shared/agents.js';
-import {loadAgentArms,loadedAgentArms,requestAgentArms,retainAgentArms,releaseAgentArms} from './agent-arms.js';
+import {loadAgentArms,loadedAgentArms,requestAgentArms,retainAgentArms,releaseAgentArms,loadGloveArms,loadedGloveArms,requestGloveArms,swapGlove} from './agent-arms.js';
+import {DEFAULT_GLOVE,getGlove} from '../shared/gloves.js';
 
 const loader = gameGLTFLoader();
 let animationSource;
@@ -65,12 +66,17 @@ export class ViewWeapon {
 
   }
 
-  build(id,skinId,agentId) {
+  build(id,skinId,agentId,gloveId) {
     const source = loadedSkin(skinId)||weaponSources[weaponKeys[id]];
     if (!source) throw new Error(`Missing original viewmodel weapon: ${id}`);
     const armSource=loadedAgentArms(agentId);
     if(!armSource)throw new Error(`Missing original first-person agent arms: ${agentId}`);
     const root = new THREE.Group(), arms = clone(armSource.scene), weapon = clone(source.scene), mount = new THREE.Group();
+    // The agent arms ship with one glove baked in; swap it for the equipped one.
+    // Both rigs share the identical weapon_arms skeleton, so the glove mesh can
+    // be re-bound by joint name.
+    const gloveSource=gloveId&&gloveId!==DEFAULT_GLOVE?loadedGloveArms(gloveId):null;
+    if(gloveSource)swapGlove(arms,gloveSource.scene);
     // World models have a convenience wrapper. First-person animation needs
     // the unmodified authored coordinates inside it, never a Box3 recenter.
     const normalization = weapon.getObjectByName('normalization');
@@ -147,18 +153,24 @@ export class ViewWeapon {
     action.play(); item.current=action; item.actionName=name;
   }
 
-  set(id,skinId,agentId=this.agentId||'ct-sas') {
+  set(id,skinId,agentId=this.agentId||'ct-sas',gloveId=DEFAULT_GLOVE) {
     if (!WEAPONS[id]&&!UTILITY_IDS.includes(id)&&id!=='c4') {this.group.visible=false;return;}
     if(UTILITY_IDS.includes(id)||id==='c4')skinId=id;else if(getSkin(skinId)?.weapon!==id)skinId=DEFAULT_SKINS[id];
     if(!getAgent(agentId))agentId='ct-sas';requestAgentArms(agentId);
     const fallback=DEFAULT_AGENT_IDS[getAgent(agentId).team];requestAgentArms(fallback);
     const visibleAgent=loadedAgentArms(agentId)?agentId:fallback;
-    requestSkin(skinId);const visibleSkin=loadedSkin(skinId)?skinId:UTILITY_IDS.includes(id)||id==='c4'?id:DEFAULT_SKINS[id],cacheKey=id+':'+visibleSkin+':'+visibleAgent;
+    requestSkin(skinId);const visibleSkin=loadedSkin(skinId)?skinId:UTILITY_IDS.includes(id)||id==='c4'?id:DEFAULT_SKINS[id];
+    // The glove GLB downloads apart from the arms (~3 MB). Until it lands the
+    // agent arms keep their baked-in default glove; set() is re-run every frame
+    // so the swap rebuilds as soon as the model is ready.
+    if(gloveId&&gloveId!==DEFAULT_GLOVE&&getGlove(gloveId))requestGloveArms(gloveId);
+    const visibleGlove=gloveId&&gloveId!==DEFAULT_GLOVE&&getGlove(gloveId)&&loadedGloveArms(gloveId)?gloveId:DEFAULT_GLOVE;
+    const cacheKey=id+':'+visibleSkin+':'+visibleAgent+':'+visibleGlove;
     if(!loadedSkin(visibleSkin)||!loadedAgentArms(visibleAgent)){this.waiting=true;return;}this.waiting=false;
-    if (id === this.id && this.skinId===visibleSkin && this.agentId===visibleAgent) return;
+    if (id === this.id && this.skinId===visibleSkin && this.agentId===visibleAgent && this.gloveId===visibleGlove) return;
     if (this.active) { this.rig.remove(this.active.root); this.active.flash.visible=false; this.active.light.intensity=0; }
-    this.id=id;this.skinId=visibleSkin;this.agentId=visibleAgent;
-    if (!this.cache.has(cacheKey)) this.cache.set(cacheKey,this.build(id,visibleSkin,visibleAgent));
+    this.id=id;this.skinId=visibleSkin;this.agentId=visibleAgent;this.gloveId=visibleGlove;
+    if (!this.cache.has(cacheKey)) this.cache.set(cacheKey,this.build(id,visibleSkin,visibleAgent,visibleGlove));
     this.active=this.cache.get(cacheKey); this.rig.add(this.active.root);
     this.cache.delete(cacheKey);this.cache.set(cacheKey,this.active);
     while(this.cache.size>4){const key=this.cache.keys().next().value,item=this.cache.get(key);this.cache.delete(key);disposeInstanceAnimation(item.mixer,item.root);disposeInstanceSkeletons(item.root);item.display?.dispose();item.flash.geometry.dispose();item.flash.material.dispose();item.root.removeFromParent();releaseSkin(item.skinId);releaseAgentArms(item.agentId);}
@@ -213,9 +225,9 @@ export class ViewWeapon {
     item.mount.updateWorldMatrix(false,true);
   }
 
-  update(dt,p,scoped,{optic=false,duckVelocity=0}={}) {
+  update(dt,p,scoped,{optic=false,duckVelocity=0,gloveId=DEFAULT_GLOVE}={}) {
     dt=Math.min(.1,Math.max(0,dt||0));this.clock+=dt;
-    if(p?.weapon)this.set(p.weapon,p.skinId,p.agentId||DEFAULT_AGENT_IDS[p.team]||'ct-sas');
+    if(p?.weapon)this.set(p.weapon,p.skinId,p.agentId||DEFAULT_AGENT_IDS[p.team]||'ct-sas',gloveId);
     this.group.visible=Boolean(p?.alive&&!scoped&&!this.waiting&&this.id===p?.weapon);
     if(!p||!this.active)return;
     if(this.opticActive!==optic){this.opticActive=optic;if(this.id==='sg553')this.playOn(this.active,optic?'aimIdle':'idle',.1);}

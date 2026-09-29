@@ -1,6 +1,8 @@
 import {preferences} from './persistence.js';
 import { SKINS, DEFAULT_SKINS, getSkin, normalizeSkinLoadout } from '../shared/skins.js';
 import { getWeapon } from '../shared/weapons.js';
+import { getGlove, DEFAULT_GLOVE } from '../shared/gloves.js';
+import { readGloveLoadout } from './loadout-view.js';
 import { loadSkin,skinSaved,downloadSkin } from './skin-assets.js';
 import './skins.css';
 
@@ -21,6 +23,8 @@ export class SkinMenu{
   status(text){this.element.querySelector('.skin-status').textContent=text;}
   render(){
     this.element.querySelectorAll('[data-skin-weapon]').forEach(b=>b.classList.toggle('selected',b.dataset.skinWeapon===this.weapon));
+    const glove=getGlove(readGloveLoadout())||getGlove(DEFAULT_GLOVE);
+    this.element.querySelector('.glove-label').textContent=`当前手套：${glove.family} · ${glove.name} · 崭新出厂（在「武器装备」页更换）`;
     const grid=this.element.querySelector('#skin-grid');grid.replaceChildren();
     for(const skin of SKINS.filter(s=>s.weapon===this.weapon)){
       const button=document.createElement('button');button.className='skin-item';button.classList.toggle('selected',this.loadout[skin.weapon]===skin.id);button.disabled=this.busy;

@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { disposeInstanceAnimation, disposeInstanceSkeletons } from '../client/resource-lifecycle.js';
 import { PlayerModel, Effects, ViewWeapon } from '../client/models.js';
+import { swapGlove } from '../client/agent-arms.js';
 import { registerDefaultSkin } from '../client/skin-assets.js';
 import { GameAudio } from '../client/audio.js';
 
@@ -221,4 +222,76 @@ test('cancelled lazy audio cannot restart when its decode completes', async () =
     complete(true);await new Promise(resolve=>setImmediate(resolve));
     assert.equal(replayed,false,cancel);
   }
+});
+
+test('glove swap rebinds onto the arms joints and never rewrites authored bind matrices', () => {
+  // Two rigs on the same joints: agent arms with a baked glove + bare arm, and
+  // a glove library model. Authored boneInverses deliberately differ from the
+  // rest pose so a bare SkinnedMesh#bind (which recomputes them from the rest
+  // pose into the shared library array) cannot pass unnoticed.
+  const JOINTS = ['hand_L', 'arm_upper_L', 'finger_thumb_0_L', 'arm_upper_L_TWIST'];
+  function rig(meshNames) {
+    const scene = new THREE.Group();
+    const bones = [];
+    for (let i = 0; i < JOINTS.length; i++) {
+      const bone = new THREE.Bone();
+      bone.name = JOINTS[i];
+      bone.position.set(.1 * (i + 1), .05 * i, 0);
+      (i ? bones[i - 1] : scene).add(bone);
+      bones.push(bone);
+    }
+    scene.updateMatrixWorld(true);
+    const authored = bones.map(bone =>
+      new THREE.Matrix4().copy(bone.matrixWorld).invert().multiply(new THREE.Matrix4().makeTranslation(0, .02, 0)));
+    for (const [index, name] of meshNames.entries()) {
+      const geometry = new THREE.BoxGeometry(.1, .1, .1);
+      const count = geometry.attributes.position.count;
+      const skinIndex = new Uint16Array(count * 4), skinWeight = new Float32Array(count * 4);
+      for (let i = 0; i < count; i++) { skinIndex[i * 4] = (i + index) % bones.length; skinWeight[i * 4] = 1; }
+      geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4));
+      geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeight, 4));
+      const mesh = new THREE.SkinnedMesh(geometry, new THREE.MeshStandardMaterial());
+      mesh.name = name;
+      scene.add(mesh);
+      mesh.bind(new THREE.Skeleton(bones, authored.map(matrix => matrix.clone())), new THREE.Matrix4());
+    }
+    return scene;
+  }
+  const snapshot = root => {
+    const matrices = [];
+    root.traverse(object => {
+      if (!object.isSkinnedMesh) return;
+      for (const matrix of object.skeleton.boneInverses) matrices.push(matrix.elements.slice());
+    });
+    return matrices;
+  };
+  const libraryArms = rig([
+    'agents\\models\\shared\\arms\\glove_sporty\\glove_sporty.vmdl_c.viewmodel',
+    'ct-sas original firstperson arms and sleeves',
+  ]);
+  const libraryGlove = rig(['agents\\models\\shared\\arms\\glove_slick\\glove_slick.vmdl_c.viewmodel']);
+  const armsBinds = snapshot(libraryArms), gloveBinds = snapshot(libraryGlove);
+  const arms = clone(libraryArms);
+
+  swapGlove(arms, libraryGlove);
+
+  const names = [];
+  let swapped = null, bareArm = null;
+  arms.traverse(object => {
+    if (!object.isSkinnedMesh) return;
+    names.push(object.name);
+    if (/glove_slick/i.test(object.name)) swapped = object;
+    if (/arms and sleeves/i.test(object.name)) bareArm = object;
+  });
+  assert.ok(names.some(name => /glove_slick/i.test(name)), names.join(','));
+  assert.ok(!names.some(name => /glove_sporty/i.test(name)), names.join(','));
+  assert.ok(bareArm, 'sleeve and bare arm mesh survives the swap');
+  const armBones = new Set();
+  arms.traverse(object => { if (object.isBone) armBones.add(object); });
+  assert.ok(swapped.skeleton.bones.every((bone, index) => bone.name === JOINTS[index] && armBones.has(bone)),
+    'glove joints are the arms rig joints, in the glove skinIndex order');
+  assert.deepEqual(snapshot(libraryArms), armsBinds, 'library arms bind matrices survive the swap');
+  assert.deepEqual(snapshot(libraryGlove), gloveBinds, 'library glove bind matrices survive the swap');
+  assert.deepEqual(swapped.skeleton.boneInverses.map(m => m.elements.slice()), gloveBinds,
+    'swapped glove keeps the authored inverses, not a rest-pose recomputation');
 });
