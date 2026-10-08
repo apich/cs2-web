@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {readVpkIndex} from '../../tools/vpk-index.mjs';
 import {RELOAD_PROFILES} from '../../shared/reload-profiles.js';
 const root=path.resolve(import.meta.dirname,'../..'),stage=path.join(root,'artifacts/reload-c4'),raw=path.join(stage,'audio');
-const game=process.env.CS2_GAME_DIR||'E:/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo',pak=path.join(game,'pak01_dir.vpk');
+const game=process.env.CS2_GAME_DIR||'E:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo',pak=path.join(game,'pak01_dir.vpk');
 const index=new Map(readVpkIndex(pak).entries.map(e=>[e.path,e]));
 const eventText=fs.readFileSync(path.join(root,'artifacts/cs2-audio/raw/soundevents/game_sounds_weapons.vsndevts'),'utf8'),events={};
 for(const m of eventText.matchAll(/\n\t([^\n=]+) =\s*\n\t\{/g)){const end=eventText.indexOf('\n\t}',m.index+m[0].length);events[m[1].trim().toLowerCase()]=[...eventText.slice(m.index,end).matchAll(/"(sounds\/[^"\n]+)\.vsnd"/g)].map(m=>m[1]+'.vsnd_c');}

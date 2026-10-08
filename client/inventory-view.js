@@ -1,6 +1,6 @@
 // 「库存」视图（参考图 4）：搜索 / 筛选 / 排序 + 稀有度色条网格 + 展示品 + 详情侧栏。
 // 皮肤数据复用 shared/skins.js；装备走 team-loadout（CT/T 各一套），下载走 skin-assets 管线。
-import { SKINS, getSkin } from '../shared/skins.js';
+import { SKINS, getSkin, skinTypeName, skinFinishName } from '../shared/skins.js';
 import { GLOVES, getGlove, DEFAULT_GLOVE } from '../shared/gloves.js';
 import { readGloveLoadout, saveGloveLoadout } from './loadout-view.js';
 import { loadGloveArms } from './agent-arms.js';
@@ -13,6 +13,8 @@ import { mountMorphIcons } from './morph-icons.js';
 import './inventory.css';
 
 const weaponName = id => getWeapon(id)?.name || id;
+// 刀类卡片标题用刀型名（蝴蝶刀/M9 刺刀…），不能落到武器槽名「爪子刀」上
+const typeName = skin => skinTypeName(skin) || weaponName(skin?.weapon);
 const agentPreview = id => `assets/characters-cs2/previews/${id}.webp`;
 
 // 展示品（不可装备，仅陈列）：用现有 CS2 图标 + CSS 绘制
@@ -26,6 +28,7 @@ const SHOWCASE = [
 const FILTERS = [
   { key: 'all', label: '全部' },
   { key: 'gear', label: '装备' },
+  { key: 'knives', label: '刀' },
   { key: 'agents', label: '探员' },
   { key: 'gloves', label: '手套' },
   { key: 'showcase', label: '展示品' },
@@ -113,6 +116,8 @@ export class InventoryView {
       list = AGENT_CATALOG.map(a => ({ agent: a }));
     } else if (this.filter === 'gloves') {
       list = GLOVES.map(g => ({ glove: g }));
+    } else if (this.filter === 'knives') {
+      list = SKINS.filter(s => s.weapon === 'knife').map(s => ({ skin: s }));
     } else if (this.filter === 'gear') {
       list = SKINS.map(s => ({ skin: s }));
     } else {
@@ -120,7 +125,7 @@ export class InventoryView {
     }
     if (this.query) {
       list = list.filter(({ skin, agent, glove, showcase }) => {
-        const text = skin ? `${skin.name} ${skin.englishName || ''} ${weaponName(skin.weapon)}`
+        const text = skin ? `${skin.name} ${skin.englishName || ''} ${typeName(skin)}`
           : agent ? `${agent.name} ${agent.id}`
           : glove ? `${glove.name} ${glove.englishName || ''} ${glove.family}`
           : `${showcase.name}`;
@@ -159,7 +164,7 @@ export class InventoryView {
       card.classList.toggle('is-equipped', equipped[skin.weapon] === skin.id);
       card.innerHTML = `
         <span class="inv-thumb"><img src="${skin.preview}" alt="${skin.name}" loading="lazy"><i class="rarity-bar" style="background:${rarityOf(skin)}"></i></span>
-        <b>${weaponName(skin.weapon)}</b><small>${skin.name}</small>`;
+        <b>${typeName(skin)}</b><small>${skinFinishName(skin)}</small>`;
       card.addEventListener('click', () => { this.detail = { skin }; this.render(); });
     } else if (entry.agent) {
       const agent = entry.agent;
@@ -199,12 +204,12 @@ export class InventoryView {
     if (d.skin) {
       const skin = d.skin;
       art.innerHTML = `<img src="${skin.preview}" alt="${skin.name}"><i class="rarity-bar" style="background:${rarityOf(skin)}"></i>`;
-      title.textContent = `${weaponName(skin.weapon)} | ${skin.name}`;
+      title.textContent = `${typeName(skin)} | ${skinFinishName(skin)}`;
       sub.textContent = skin.englishName || '';
       const rows = [
         ['品质', RARITY_NAME[rarityKeyOf(skin)]],
         ['外观', skin.condition || '崭新出厂'],
-        ['类别', weaponName(skin.weapon)],
+        ['类别', typeName(skin)],
       ];
       if (skin.downloadRequired) rows.push(['资源', this.downloaded.has(skin.id) ? '已下载' : '需下载']);
       for (const [k, v] of rows) {

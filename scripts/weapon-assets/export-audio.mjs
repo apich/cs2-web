@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { readVpkIndex } from '../../tools/vpk-index.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const pak = 'E:/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo/pak01_dir.vpk';
+const pak = 'E:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo/pak01_dir.vpk';
 const raw = path.join(root, 'artifacts/weapon-expansion/audio-raw');
 const output = path.join(root, 'public/assets/audio/cs2');
 const eventText=fs.readFileSync(path.join(root,'artifacts/cs2-audio/raw/soundevents/game_sounds_weapons.vsndevts'),'utf8');

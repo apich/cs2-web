@@ -15,7 +15,7 @@ const kits={};
 for(let index=0;index<tokens.length-1;index++)if(tokens[index]==='paint_kits'&&tokens[index+1]==='{'){
  cursor=index+2;const section=object();for(const [id,kit]of Object.entries(section))kits[id]={...kits[id],...kit};index=cursor-1;
 }
-const game=process.env.CS2_GAME_DIR||'E:/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo';
+const game=process.env.CS2_GAME_DIR||'E:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo';
 const entries=new Set(readVpkIndex(path.join(game,'pak01_dir.vpk')).entries.map(entry=>entry.path));
 const weapons={elite:'elite',p250:'p250',fiveseven:'fiveseven',deagle:'deagle',nova:'nova',mag7:'mag7',mp9:'mp9',mp7:'mp7',bizon:'bizon',scar20:'scar20',m4a4:'m4a1',ssg08:'ssg08',tec9:'tec9',xm1014:'xm1014',sawedoff:'sawedoff',mac10:'mac10',galilar:'galilar',sg553:'sg556',ak47:'ak47',m4a1:'m4a1_silencer',awp:'awp',pistol:'glock',usp:'usp_silencer',knife:'knife_karambit'};
 const result={source:'Installed CS2 items_game and localization, read only',weapons:{}};

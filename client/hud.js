@@ -1,7 +1,7 @@
 import { getMap, DEFAULT_MAP } from '../shared/maps/registry.js';
 import { UTILITY_IDS, EQUIPMENT } from '../shared/equipment.js';
 import { getWeapon } from '../shared/weapons.js';
-import { getSkin, DEFAULT_SKINS } from '../shared/skins.js';
+import { getSkin, DEFAULT_SKINS, skinTypeName } from '../shared/skins.js';
 import { AGENT_ASSETS } from '../shared/agent-assets.js';
 import { uiIcon } from './ui-icons.js';
 import { DeathScreen } from './death-screen.js';
@@ -114,7 +114,7 @@ export class HUD {
     this.text('health', Math.ceil(clamp(self.health, 0, 999)));
     this.text('armor', `护甲 ${Math.round(clamp(self.armor, 0, 999))}${self.helmet?' · 头盔':''}${self.defuseKit?' · 拆弹器':''}`);
     this.text('money', `$ ${Math.max(0, Math.round(number(self.money))).toLocaleString('en-US')}`);
-    const heldSkin=getSkin(self.skinId||DEFAULT_SKINS[self.weapon]),knifeName=self.weapon==='knife'&&heldSkin?.animationFamily?heldSkin.name.split(' · ')[0]:weapon.name;
+    const heldSkin=getSkin(self.skinId||DEFAULT_SKINS[self.weapon]),knifeName=self.weapon==='knife'?(skinTypeName(heldSkin)||weapon.name):weapon.name;
     this.text('weapon-name', knifeName);this.text('slot3',self.weapon==='knife'?'3 '+knifeName:'3 近战武器');
     this.text('weapon-skin', getSkin(self.skinId||DEFAULT_SKINS[self.weapon])?.name || '');
     const silhouette=document.getElementById('active-weapon-icon');if(silhouette&&this.iconWeapon!==self.weapon+':'+self.skinId){this.iconWeapon=self.weapon+':'+self.skinId;if(self.weapon==='knife'&&heldSkin?.animationFamily){const image=document.createElement('img');image.src=heldSkin.preview;image.alt=knifeName;silhouette.replaceChildren(image);}else silhouette.replaceChildren(uiIcon(self.weapon,weapon.name));}

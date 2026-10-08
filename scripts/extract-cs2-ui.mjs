@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { readVpkIndex } from '../tools/vpk-index.mjs';
 const root=path.resolve(import.meta.dirname,'..');
-const vpk=process.env.CS2_VPK||'E:/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo/pak01_dir.vpk';
+const vpk=process.env.CS2_VPK||'E:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo/pak01_dir.vpk';
 const index=readVpkIndex(vpk),entries=new Map(index.entries.map(e=>[e.path,e]));
 const weapons={molotov:'molotov',incgrenade:'incgrenade',decoy:'decoy',ak47:'ak47',m4a4:'m4a1',m4a1:'m4a1_silencer',awp:'awp',pistol:'glock',usp:'usp_silencer',elite:'elite',p250:'p250',fiveseven:'fiveseven',deagle:'deagle',nova:'nova',mag7:'mag7',mp9:'mp9',mp7:'mp7',bizon:'bizon',scar20:'scar20',ssg08:'ssg08',tec9:'tec9',xm1014:'xm1014',sawedoff:'sawedoff',mac10:'mac10',galilar:'galilar',sg553:'sg556',knife:'knife_karambit',hegrenade:'hegrenade',flashbang:'flashbang',smokegrenade:'smokegrenade',armor:'kevlar',helmet:'assaultsuit',defusekit:'defuser',c4:'c4',world:'world'};
 const sources=Object.fromEntries(Object.entries(weapons).map(([id,name])=>[id,`panorama/images/icons/equipment/${name}.vsvg_c`]));

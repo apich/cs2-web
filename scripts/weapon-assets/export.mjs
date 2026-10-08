@@ -5,7 +5,7 @@ import { readVpkIndex } from '../../tools/vpk-index.mjs';
 
 const root=path.resolve(import.meta.dirname,'../..');
 const stage=path.join(root,'artifacts/weapon-expansion');
-const game=process.env.CS2_GAME_DIR||'E:/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo';
+const game=process.env.CS2_GAME_DIR||'E:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo';
 const vpk=path.join(game,'pak01_dir.vpk');
 const cli=path.join(root,'tools/source2viewer/Source2Viewer-CLI.exe');
 const args=process.argv.slice(2),ids=args.find(a=>a.startsWith('--ids='))?.slice(6).split(',');
