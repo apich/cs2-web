@@ -4,7 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {readVpkIndex} from '../../tools/vpk-index.mjs';
 
 const root=path.resolve(import.meta.dirname,'../..');
-const game=process.env.CS2_GAME_DIR||'E:/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo';
+const game=process.env.CS2_GAME_DIR||'E:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo';
 // Vanilla finishes (paintkit 0) have no paintkit material or generated preview
 // to extract; the knife default is exported as a plain weapon model instead.
 const specsArg=process.argv.find(a=>a.startsWith('--specs='))?.slice(8);

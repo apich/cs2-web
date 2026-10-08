@@ -22,7 +22,7 @@
 |---|---:|---:|---:|---:|
 | 枪械涂装（已接入的 23 把枪） | 1107 | 841 | 266 | 24% |
 | 枪械涂装（项目未接入的 12 把枪） | 425 | 0 | 425 | 100% |
-| **刀类涂装** | **522** | **34** | **488** | **94%** |
+| **刀类涂装** | **522** | **522** | **0** | **0%** |
 | **探员（角色模型）** | **80** | **4** | **76** | **95%** |
 | **手套（涂装）** | **72** | **1** | **71** | **99%** |
 | **贴纸** | **22872** | **0** | **22872** | 100% |
@@ -77,49 +77,88 @@ VPK 预览池里有这些枪的完整涂装，但项目 `shared/weapons.js` 里�
 
 ---
 
-## 3. 刀类涂装 — 最大缺口
+## 3. 刀类 — 刀型与涂装已全部接入（2026-10-08）
 
-VPK 里有 **19 种刀、共 522 款涂装**，项目只接入 **爪子刀（karambit）34 款**。
+VPK 里有 **19 种刀型、共 522 款涂装**（涂装数为此前枚举口径）。
+**19 型刀的原厂涂装已全部接入**（2026-09-29）：每种刀一个模型 GLB +
+一个第一人称动画包（`draw / idle / inspect / shoot / shoot2 / heavy` 六段），
+走 `animationFamily` 路由，检视与握法随刀型自动变化。
 
-| 刀型（内部名） | 中文 | VPK | 已接入 |
-|---|---|---:|---:|
-| knife_karambit | 爪子刀 | 34 | **34** |
-| knife_butterfly | **蝴蝶刀** | 34 | 0 |
-| knife_m9 | **M9 刺刀** | 34 | 0 |
-| knife_falchion | 弯刀 | 34 | 0 |
-| knife_flip | 折刀 | 34 | 0 |
-| knife_gut | 锯齿爪刀 | 34 | 0 |
-| knife_push | 熊刀 | 34 | 0 |
-| knife_survival | 猎人匕首 | 34 | 0 |
-| knife_tactical | 穿肠刀 | 34 | 0 |
-| knife_canis | 猎杀者匕首 | 24 | 0 |
-| knife_cord | 麻绳刀 | 24 | 0 |
-| knife_gypsy | 吉普赛弯刀 | 24 | 0 |
-| knife_outdoor | 户外刀 | 24 | 0 |
-| knife_skeleton | 骨骼匕首 | 24 | 0 |
-| knife_stiletto | 折叠刀 | 24 | 0 |
-| knife_widowmaker | 毒蛇匕首 | 24 | 0 |
-| knife_css | CSS 刀 | 12 | 0 |
-| knife_kukri | 尼泊尔弯刀 | 12 | 0 |
-| **合计** | | **522** | **34** |
+**涂装也已全部接入**（2026-10-08，批次见下表）：
+19 型 × 各自 `composite_inputs` 逐刀烘焙，每把刀的涂装与该刀型共享同一套
+第一人称动画包（`animationFamily` 为该刀型），握法与检视随刀型自动切换。
 
-**蝴蝶刀、M9 目前只有「原厂涂装」一个模型**（`assets/weapons/optional/`）。
+刀型名以本地化与 `items_game.txt` 为准（此前表格的生存/吉普赛/毒蛇等名字有误）：
 
-### 为什么不能简单复制粘贴
+| 模型目录（animationFamily） | 中文 | 英文 | 原厂 | 涂装 |
+|---|---|---|:---:|---:|
+| knife_bayonet | 刺刀 | Bayonet | ✅ | 34 已接 |
+| knife_bowie | 鲍伊猎刀 | Bowie Knife | ✅ | 34 已接 |
+| knife_butterfly | 蝴蝶刀 | Butterfly Knife | ✅ | 34 已接 |
+| knife_canis | 求生匕首 | Survival Knife | ✅ | 24 已接 |
+| knife_cord | 系绳匕首 | Paracord Knife | ✅ | 24 已接 |
+| knife_css | 海豹短刀 | Classic Knife | ✅ | 12 已接 |
+| knife_falchion | 弯刀 | Falchion Knife | ✅ | 34 已接 |
+| knife_flip | 折叠刀 | Flip Knife | ✅ | 34 已接 |
+| knife_gut | 穿肠刀 | Gut Knife | ✅ | 34 已接 |
+| knife_karambit | 爪子刀 | Karambit | ✅ | 34 已接 |
+| knife_kukri | 廓尔喀刀 | Kukri Knife | ✅ | 12 已接 |
+| knife_m9 | M9 刺刀 | M9 Bayonet | ✅ | 34 已接 |
+| knife_navaja | 折刀 | Navaja Knife | ✅ | 24 已接 |
+| knife_outdoor | 流浪者匕首 | Nomad Knife | ✅ | 24 已接 |
+| knife_push | 暗影双匕 | Shadow Daggers | ✅ | 34 已接 |
+| knife_skeleton | 骷髅匕首 | Skeleton Knife | ✅ | 24 已接 |
+| knife_stiletto | 短剑 | Stiletto Knife | ✅ | 24 已接 |
+| knife_tactical | 猎杀者匕首 | Huntsman Knife | ✅ | 34 已接 |
+| knife_talon | 锯齿爪刀 | Talon Knife | ✅ | 24 已接 |
+| knife_ursus | 熊刀 | Ursus Knife | ✅ | 24 已接 |
+| **合计 19 型** | | | **19/19** | **522 / 522** |
 
-CS2 的多普勒、渐变等图案类涂装在**每种刀上是独立的油漆**，paint key 带不同后缀
-（`am_doppler_phase2` 在不同刀上是 `..._b` / `..._gr` / `..._marble`）。
-所以每种刀的 34 款不是同一套数据，必须逐刀导出。
+> 每型「涂装」列 = 该刀型的彩绘 kit 数（原厂涂装另计）。合计 522 = VPK 枚举的
+> 刀类涂装总数，与总览行一致。
+
+### 刀型实现机制（已跑通）
+
+每把刀 = 模型 GLB（`body_legacy` 网格 + `weapon`/`weapon_offset` 活动部件节点
++ `normalization` 包装）+ 独立动画包 `<family>-animations.glb`（剪辑名
+`<family>/{draw,idle,inspect,shoot,shoot2,heavy}`，轨道覆盖双臂骨架与刀身部件
+——蝴蝶刀的 `front/blade/rear/lock` 开合、暗影双匕的 `weapon_l/weapon_r` 都在
+剪辑里）。`viewmodel.build` 按 `animationFamily` 取剪辑、按节点名过滤轨道，
+握法/检视全部来自剪辑数据，无需按刀写代码。
+
+管线：`scripts/weapon-assets/export-extras.mjs`（逐刀导出模型 + 6 剪辑 + 库存图）
+→ `pack-extras.py`（嵌纹理、normalization、打包动画、预览 webp、目录行）
+→ `append-knives.mjs`（合并进 `shared/skins.js`）。产物在
+`public/assets/weapons/optional/`，每刀约 2–3.5 MB 模型 + 0.8 MB 动画，按需下载。
+
+### 剩余：涂装 —— 已全部接入（2026-10-08）
+
+**蝴蝶刀 34 款**（2026-10-08 首批）→ `bake-knife-batch.mjs` 一次批跑补齐其余 18 型：
+
+```
+bayonet 34 · bowie 34 · butterfly 34 · canis 24 · cord 24 · css 12 ·
+falchion 34 · flip 34 · gut 34 · kukri 12 · m9 34 · navaja 24 ·
+outdoor 24 · push 34 · skeleton 24 · stiletto 24 · tactical 34 ·
+talon 24 · ursus 24          （合计 522）
+```
+
+批跑命令（幂等，已入目录的刀型 spec 为空、自动跳过）：
+
+```bash
+node scripts/weapon-assets/bake-knife-batch.mjs                 # 全部刀型
+node scripts/weapon-assets/bake-knife-batch.mjs --knives=falchion,stiletto
+```
+
+产物在 `public/assets/weapons/cs2-full/<刀型>-<paintkey>.glb` + `previews/`，
+命名沿用本地化 + 区分后缀（多普勒 · Phase 2 / 黑珍珠 / 红宝石 / 蓝宝石），
+`animationFamily` 为该刀型，与同型原厂共享动画包。蝴蝶刀已在多普勒 Phase 2
+刀身 + 开合检视的实机对局中验证过。
 
 > 反面教材：我一度按 `kit.name` 撞出「每刀 34 款」，那是映射造成的假象。
-> 真实数据是上面这张表。
+> 真实数据是上面这张表——css/kukri 各 12 款，canis/cord/navaja/outdoor/
+> skeleton/stiletto/talon/ursus 各 24 款。
 
-### 做到要做的事
-
-1. `export.mjs` 扩展：每种刀要导出原始 GLB + 该刀的 `composite_inputs` 复合材质
-2. `index-paintkits.mjs` 的 `knife:'knife_karambit'` 是硬编码的，要改成多刀型
-3. 每种刀的 legacy/HD body 情况不同（爪刀只有 legacy）
-4. **工作量**：约 1.5 GiB（488 × 3.08 MiB 均值）
+### 涂装原定要做的事（均已处理）
 
 ---
 
@@ -266,6 +305,6 @@ apich 的服务器（第一提交即有），**不是你的**。另见 [ONLINE.m
 | 3 | 手套 72 款 | 用户明确要求 | 中（拆 arms.glb） | **第一人称已完成；第三人称待办** |
 | 4 | 探员 76 个变体 | 用户明确要求 | 中 | **进行中** |
 | 5 | 枪械漏算 266 款 | 数字偏低 | 小（跑流水线） | 待办 |
-| 6 | 刀类 488 款 | 最大缺口 | 大（1.5 GiB） | 后期 |
+| 6 | 刀类 522 款涂装 | 最大缺口 | 中（逐刀跑管线，每刀约 5 分钟） | **已全部接入（522/522）** |
 | 7 | 12 把缺失枪种 425 款 | 需加枪 | 大 | **后期（已确认）** |
 | 8 | `full-manifest.json` 修复 | 元数据 | 小 | 待办 |

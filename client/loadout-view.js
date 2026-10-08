@@ -6,7 +6,7 @@
 // 比赛可带枪械以 shared/weapons.js 的 TEAM_LOADOUTS 为准。
 import { setTeamSkin, getTeamLoadout, equippedSkinId, skinsForWeapon } from './team-loadout.js';
 import { getWeapon, TEAM_LOADOUTS } from '../shared/weapons.js';
-import { getSkin, SKINS } from '../shared/skins.js';
+import { getSkin, SKINS, skinTypeName, skinFinishName } from '../shared/skins.js';
 import { AGENT_CATALOG, getAgent, normalizeAgentLoadout } from '../shared/agents.js';
 import { GLOVES, getGlove, DEFAULT_GLOVE } from '../shared/gloves.js';
 import { loadSkin, skinSaved, downloadSkin } from './skin-assets.js';
@@ -25,6 +25,8 @@ const glovePreview = id => {
   return glove?.preview || `assets/viewmodel/gloves/previews/${id}.webp`;
 };
 const weaponName = id => getWeapon(id)?.name || id;
+// 刀类卡片标题用刀型名（蝴蝶刀/M9 刺刀…），不能落到武器槽名上
+const typeName = skin => skin && (skinTypeName(skin) || weaponName(skin.weapon));
 
 const GLOVE_KEY = 'dust2.gloves.v1';
 export function readGloveLoadout() {
@@ -255,7 +257,7 @@ export class LoadoutView {
           const item = document.createElement('button');
           item.type = 'button';
           item.className = 'loadout-item' + (this.selection?.weapon === weapon ? ' is-selected' : '');
-          item.title = `${weaponName(weapon)} · ${skin?.name || ''}`;
+          item.title = skin ? `${typeName(skin)} · ${skinFinishName(skin)}` : weaponName(weapon);
           item.dataset.weapon = weapon;
           item.innerHTML = `<img src="${skin?.preview || ''}" alt=""><i class="rarity-bar" style="background:${rarityOf(skin)}"></i>`;
           item.addEventListener('click', () => { this.selection = { weapon }; this.statusMessage = ''; this.renderCenter(); this.renderInventory(); });
@@ -336,7 +338,7 @@ export class LoadoutView {
         card.dataset.skinId = skin.id;
         card.innerHTML = `
           <span class="inv-thumb"><img src="${skin.preview}" alt="${skin.name}" loading="lazy"><i class="rarity-bar" style="background:${rarityOf(skin)}"></i></span>
-          <b>${weaponName(skin.weapon)}</b><small>${skin.name}</small>`;
+          <b>${typeName(skin)}</b><small>${skinFinishName(skin)}</small>`;
         card.addEventListener('click', () => this.equip(skin));
         card.addEventListener('dragstart', e => {
           e.dataTransfer.setData('text/plain', skin.id);

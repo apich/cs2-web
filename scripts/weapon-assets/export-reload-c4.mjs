@@ -4,7 +4,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {readVpkIndex} from '../../tools/vpk-index.mjs';
 const root=path.resolve(import.meta.dirname,'../..'),stage=path.join(root,'artifacts/reload-c4');
-const game=process.env.CS2_GAME_DIR||'E:/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo';
+const game=process.env.CS2_GAME_DIR||'E:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo';
 const pak=path.join(game,'pak01_dir.vpk'),cli=path.join(root,'tools/source2viewer/Source2Viewer-CLI.exe');
 fs.mkdirSync(stage,{recursive:true});const temp=path.join(root,'artifacts/export-temp');fs.mkdirSync(temp,{recursive:true});
 const entries=readVpkIndex(pak).entries,index=new Set(entries.map(e=>e.path));
