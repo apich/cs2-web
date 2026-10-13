@@ -42,9 +42,11 @@ export const MIRAGE = {
 
   skyUrl: '/assets/sky/daylight.hdr?v=5244534e9cf5',
 
-  // Mirage shipped no 16:9 capture from Source 2 Viewer, so its own radar stands
-  // in behind the shade rather than borrowing Dust II's photo.
-  backdrop: data.overview?.image || '/assets/valve-mirage/de_mirage_radar_psd.png',
+  // Lobby/loading backdrop. Mirage has no Source 2 Viewer capture of its own, so
+  // scripts/extract-map-backdrops.mjs pulls the game's 1080p panorama screenshot
+  // of A site — the same source Dust II's de_dust2_1_png.png came from — instead
+  // of standing the radar in as a photograph.
+  backdrop: '/assets/map-backgrounds/de_mirage_1.webp',
 
   // Mirage is a single-level map of a comparable footprint to Dust II, so the
   // Dust II lighting block is a sound starting point; tune in game if needed.
