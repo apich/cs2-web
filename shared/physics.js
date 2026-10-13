@@ -461,7 +461,11 @@ export function stepPlayer(p,input={},dt=1/60) {
       stepped.translate(new Vector3(motion.x,STEP_HEIGHT,motion.z));
       if(!world.hullIntersect(stepped)) {
         const support=sweepDown(stepped,STEP_HEIGHT+.06);
-        if(support){c.copy(support);p.vy=0;ground=true;}
+        // A step-up must land at or above the feet it started from. The +0.06
+        // slack exists to snap onto a tread a hair lower, not to walk the player
+        // downhill: accepting a lower landing makes the branch fire forever on a
+        // step whose only support sits just below the current floor.
+        if(support&&support.min.y>=before.min.y-.001){c.copy(support);p.vy=0;ground=true;}
       }
     }
     ground=collide(c,p)||ground;

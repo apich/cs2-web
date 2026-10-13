@@ -21,7 +21,10 @@ export class HullContact {
    exit=Math.min(exit,last);if(enter>exit+1e-8)return null;
   }
   if(enter<-.00001||enter>1||exit<0)return null;
-  return {distance:Math.max(0,enter)*maxDrop,walkable:Math.abs(this.surface.y)>=.7&&normalY>=.7};
+  // Only a face that points up can carry a descending hull. The sweep is always
+  // downward, and Math.abs() used to let a deck's underside count as floor, so a
+  // hull falling beside a thin slab could come to rest on its bottom face.
+  return {distance:Math.max(0,enter)*maxDrop,walkable:this.surface.y>=.7&&normalY>=.7};
  }
  intersect(tri,box){
   box.getCenter(this.center);box.getSize(this.half).multiplyScalar(.5);
