@@ -2,6 +2,7 @@
 // 状态机：HOME（大厅）→ MODE_SELECT（模式选择）→ LOADING（加载过场）→ GAME（对局）。
 // 只负责界面显隐、切换动画与视觉进度；真实资源下载与建连流程仍由 main.js 的 start()/connect() 驱动。
 const $ = id => document.getElementById(id);
+import { randomMenuBackdrop } from './menu-backdrop.js';
 const STORAGE_KEY = 'dust2.selectedFaction.v1';
 const AGENT_PREVIEW = {
   CT: 'assets/characters-cs2/previews/ct-sas.webp',   // TODO: replace with CT character asset
@@ -20,6 +21,9 @@ export const GAME_MODES = Object.freeze({
 });
 // 当前选中模式（真实值的唯一来源仍是隐藏的 select#mode，创建房间时从那里读取）。
 export let selectedGameMode = 'defuse';
+
+// 当前大厅视图，用于判断是否"回到首页"（切换背景图）。初始与 index.html 一致。
+let currentView = 'home';
 
 let selectedFaction = readFaction();
 let overlayImg = null, swapTimeout = null;
@@ -100,6 +104,8 @@ function swapCharacter(faction, animate) {
 
 // ---- 视图切换：开始(大厅) / 武器装备 / 库存 / 商店 / 新闻 ----
 export function showView(name) {
+  const previous = currentView;
+  currentView = name;
   document.querySelectorAll('.menu-view').forEach(v => {
     const on = v.dataset.view === name;
     v.classList.toggle('active', on);
@@ -111,6 +117,8 @@ export function showView(name) {
   for (const [view, id] of Object.entries(navIdByView)) {
     document.getElementById(id)?.classList.toggle('active', view === name);
   }
+  // 每次回到首页都换一张地图背景；同视图内重复调用（如打开模式选择）不换。
+  if (name === 'home' && previous !== 'home') randomMenuBackdrop();
 }
 
 // ---- 模式选择面板 ----
@@ -214,14 +222,12 @@ export function setLoadingMap(map) {
   if (radar && radarUrl) radar.src = new URL(radarUrl.replace(/^\//, ''), document.baseURI).href;
 }
 
-/** Point the lobby/loading/mode-card backdrops at this map's own image. */
+/** Point the loading screen and mode cards at this map's own image. */
 export function setMapBackdrop(map) {
   const url = map?.backdrop;
   document.documentElement.style.setProperty('--map-backdrop', url ? `url('${url}')` : 'none');
-  for (const selector of ['.menu-photo', '.loading-image']) {
-    const el = document.querySelector(selector);
-    if (el) el.hidden = !url;
-  }
+  const image = document.querySelector('.loading-image');
+  if (image) image.hidden = !url;
 }
 
 export function startLoadingView(map = null) {
@@ -283,11 +289,12 @@ export function stopLoadingView() {
   currentGameState = GameState.HOME;
 }
 
-// 回到大厅：关掉模式选择、清掉加载定时器/rAF，状态归位 HOME。
+// 回到大厅：关掉模式选择、清掉加载定时器/rAF，状态归位 HOME，并换一张首页背景。
 export function showHome() {
   hideModeSelect();
   stopLoadingView();
   currentGameState = GameState.HOME;
+  randomMenuBackdrop();
 }
 
 // ---- 装配：模式卡 / 返回 / 进入 / 警匪按钮 ----
@@ -308,4 +315,5 @@ export function initLobbyUI({ onStart, onFaction } = {}) {
     onFaction?.(btn.dataset.faction);
   }));
   setFaction(selectedFaction, false);
+  randomMenuBackdrop(); // 首屏也有一张地图背景，之后每次回首页再换
 }

@@ -48,6 +48,7 @@ node scripts/fetch-assets.mjs --base-url https://your-host.example/dust2/
 | 地图碰撞与导航资料 | [Awpy 固定版本 2000905](https://github.com/pnxenopoulos/awpy-data/releases/tag/2000905)；源游戏内容属于 Valve | 转换为共享导航和客户端/服务端碰撞数据 |
 | 武器、皮肤图案、手臂、骨骼动作和原始枪声 | 本地安装的 CS2；Valve 及原 Workshop 创作者 | 按原模型 UV 烘焙网页 PBR 材质，打包 GLB，音频转为浏览器 MP3 |
 | 地图背景、图标与雷达图 | [MurkyYT/cs2-map-icons 固定提交](https://github.com/MurkyYT/cs2-map-icons/tree/ca2012aec9983cf4b1fd7886ffc1808763a787c3)；原图属于 Valve | 使用地图图库中各地图对应的文件（Dust II、Mirage） |
+| 首页背景图池与 Mirage 加载背景 | 本地 CS2 `pak01_dir.vpk` 中 `panorama/images/map_icons/screenshots/1080p/*_png.vtex_c`；Valve | `scripts/extract-map-backdrops.mjs` 只读抽取后缩至 1600px 宽并转 WebP；18 张地图截图随机轮换，不用雷达图充当照片 |
 | SWAT 与 Hoodie 角色、动作 | [Quaternius Ultimate Modular Characters](https://quaternius.com/packs/ultimatemodularcharacters.html)，CC0 | glTF 重打包为内嵌纹理的 GLB，保留骨骼动作 |
 | 脚步与部分环境撞击声 | [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds)，CC0 | 筛选运行时片段；与 Valve 原始枪声分别记录 |
 
