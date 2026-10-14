@@ -6,17 +6,18 @@ const layers = [];
 let blocked = () => false;
 let installed = false;
 
-/** 注册一个可被 Esc 关闭的层；priority 越大越先被关闭，同 id 重复注册则覆盖。 */
-export function registerEscapeLayer({ id, element, priority = 0, close } = {}) {
+/** 注册一个可被 Esc 关闭的层；priority 越大越先被关闭，同 id 重复注册则覆盖。
+ *  when 为假时该层视为不可见，用于"仅某个状态下才响应 Esc"的层。 */
+export function registerEscapeLayer({ id, element, priority = 0, close, when } = {}) {
   if (!id || !element || typeof close !== 'function') return;
-  const entry = { id, element, priority, close };
+  const entry = { id, element, priority, close, when: typeof when === 'function' ? when : null };
   const index = layers.findIndex(layer => layer.id === id);
   if (index >= 0) layers[index] = entry; else layers.push(entry);
 }
 
 /** 关闭优先级最高且可见的层；返回是否真的关掉了东西。 */
 export function closeTopEscapeLayer() {
-  const open = layers.filter(layer => !layer.element.hidden).sort((a, b) => b.priority - a.priority);
+  const open = layers.filter(layer => !layer.element.hidden && (!layer.when || layer.when())).sort((a, b) => b.priority - a.priority);
   if (!open.length) return false;
   open[0].close();
   return true;

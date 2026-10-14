@@ -210,6 +210,12 @@ body.playing #hud{animation:hud-fade-in .45s ease-out both}
 .menu-screen .menu-views{position:relative;min-width:0;min-height:0}
 .menu-screen .menu-view{display:none;position:absolute;inset:0;padding:22px 1.5vw 10px 3vw}
 .menu-screen .menu-view.active{display:block}
+/* 淡出中的旧视图：保持原有布局（首页是 grid）铺在原位，不接收点击。
+   淡入复用 loadout.css 的 view-enter，这里只补淡出一半。 */
+.menu-screen .menu-view.view-leaving{display:block;animation:menu-view-out .22s ease both;pointer-events:none}
+.menu-screen .menu-view.view-home.view-leaving{display:grid}
+@keyframes menu-view-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(6px)}}
+@media(prefers-reduced-motion:reduce){.menu-screen .menu-view.view-leaving{animation:none}}
 .menu-screen .view-home.active{display:grid;grid-template-columns:minmax(272px,320px) minmax(0,1fr);gap:2vw;align-items:stretch}
 /* 左侧活动列 */
 .menu-screen .promo-column{display:flex;flex-direction:column;gap:13px;justify-content:center;max-height:none;overflow:visible;padding:8px 0}
