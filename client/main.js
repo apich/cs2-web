@@ -682,20 +682,27 @@ function openPauseMenu(){
   clearGameInput();
   gameInputState='paused';
 }
-// 关闭暂停菜单并回到游戏：先锁指针（消耗瞬态激活），再补全屏+键盘锁。
-async function closePauseMenu(){
-  settingsUI.close();
-  skins.close();
-  agentsUI.close();
+// 后台重取指针锁的剩余尝试次数，>0 即表示"正在恢复中"。
+// 恢复期间 pointerlockchange / pointerlockerror 不得把暂停菜单拉回来。
+let relockAttempts=0,relockTimer=0;
+// 关闭暂停菜单并回到游戏：菜单立即隐藏，指针锁在后台退避重试。
+// 玩家用 ESC 自主退出指针锁后，浏览器有一段冷却期，首次 requestPointerLock
+// 必然被拒；此刻若把菜单拉回来，ESC 就永远关不掉，所以恢复失败只静默重试。
+function resumeGame(){
+  settingsUI.close();skins.close();agentsUI.close();
   roomMenu.element.hidden=true;
-  $('buy-menu').hidden=true;
-  $('pause-menu').hidden=true;
-  $('scoreboard').hidden=true;
-  const ok=await requestLock();   // 先锁指针（消耗瞬态激活）
-  await enterImmersiveMode();     // 再补全屏+键盘锁（暂停期间不退全屏）
-  if(!ok){gameInputState='paused';if($('buy-menu').hidden)$('pause-menu').hidden=false;}
+  $('buy-menu').hidden=true;$('pause-menu').hidden=true;$('scoreboard').hidden=true;
+  gameInputState='playing';
+  clearTimeout(relockTimer);relockAttempts=0;
+  const attempt=async()=>{
+    if(!isGameResumable()||document.pointerLockElement===canvas){relockAttempts=0;return;}
+    relockAttempts++;
+    const ok=await requestLock();
+    if(ok||document.pointerLockElement===canvas){relockAttempts=0;await enterImmersiveMode();return;}
+    if(relockAttempts<6)relockTimer=setTimeout(attempt,180*relockAttempts);
+  };
+  attempt();
 }
-function resumeGame(){closePauseMenu();}
 function showMenu(){matchAudio.stop();bombView.clear();roomMenu.element.hidden=true;settingsUI.close();skins.close();agentsUI.close();offlineMenu.element.hidden=true;$('credits').hidden=true;lobby.element.hidden=true;displayedHostBots=null;audio.stopAll();footstepAudio.reset();effects.clear();utilityEffects.clear();droppedWeapons.clear();hud.reset();matchView.reset();matchPresentation.reset();spectating=null;spectatorLook=null;pendingShots=[];mouseFire=false;wasFire=false;clearGameInput();resetScope();gameInputState='menu';exitImmersiveMode();document.exitPointerLock?.();document.body.classList.remove('playing');showHome();$('menu').hidden=false;$('hud').hidden=true;$('pause-menu').hidden=true;$('buy-menu').hidden=true;$('scoreboard').hidden=true;for(const a of actors.values())a.dispose(scene);actors.clear();self=null;snapshot=null;}
 function toggleBuy(){if(!connected)return;if(!self?.alive&&$('buy-menu').hidden){hud.toast('阵亡时无法购买，重生或下一回合后可打开商店。');return;}if($('buy-menu').hidden){if(self?.buyAllowed===false){hud.toast(self.buyReason||'当前无法购买。');return;}$('buy-menu').hidden=false;$('pause-menu').hidden=true;mouseFire=false;resetScope();clearGameInput();shop.update({player:{...self,skins:skins.loadout},mode,round:snapshot?.round,time:snapshot?.time});gameInputState='paused';document.exitPointerLock();$('close-buy').focus();}else{$('buy-menu').hidden=true;resumeGame();}}
 
@@ -781,14 +788,16 @@ document.addEventListener('pointerlockchange',()=>{
   const locked=document.pointerLockElement===canvas;
   document.body.classList.toggle('mouse-captured',locked);
   if(touchControls?.enabled){syncTouchSurface();return;}
-  if(locked){$('pause-menu').hidden=true;$('buy-menu').hidden=true;gameInputState='playing';return;}
+  if(locked){$('pause-menu').hidden=true;$('buy-menu').hidden=true;gameInputState='playing';relockAttempts=0;return;}
   clearGameInput();mouseFire=false;resetScope();
   if(!connected||snapshot?.match?.status==='ended')return;
-  if(gameInputState==='paused')return;
+  if(gameInputState==='paused'||relockAttempts)return;
   gameInputState='paused';
   if($('buy-menu').hidden)$('pause-menu').hidden=false;
 });
 document.addEventListener('pointerlockerror',()=>{
+  // 后台重锁被拒是常态（浏览器冷却期），交给 resumeGame 的退避重试，不弹回菜单。
+  if(relockAttempts)return;
   if(gameInputState==='playing'){gameInputState='paused';if($('buy-menu').hidden)$('pause-menu').hidden=false;}
 });
 document.addEventListener('fullscreenchange',()=>{
@@ -826,6 +835,10 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&touchContr
 const lobby=mountLobby({connection,onJoin:()=>{$('team').value='auto';$('join-button').click();}});
 registerEscapeLayer({id:'public-lobby',element:lobby.element,priority:40,close:()=>{lobby.element.hidden=true;}});
 registerEscapeLayer({id:'mode-select',element:$('mode-select'),priority:40,close:()=>hideModeSelect()});
+// 首页子页签（库存/武器装备/商店/新闻）：Esc 回到"开始"页。
+// 优先级最低，只有其他弹层都关掉后才轮到它；#menu 在首页始终可见，
+// 所以用 when 限定"当前不在首页视图"——对局中 #menu 是隐藏的，自然不会触发。
+registerEscapeLayer({id:'menu-view',element:$('menu'),priority:0,close:()=>showView('home'),when:()=>!$('menu').classList.contains('on-home')});
 pointerMenus.push(lobby.element);pointerGuard.observe(lobby.element,{attributes:true,attributeFilter:['hidden']});
 
 function frame(now){

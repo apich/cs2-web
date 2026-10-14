@@ -106,11 +106,25 @@ function swapCharacter(faction, animate) {
 export function showView(name) {
   const previous = currentView;
   currentView = name;
-  document.querySelectorAll('.menu-view').forEach(v => {
-    const on = v.dataset.view === name;
-    v.classList.toggle('active', on);
-    v.hidden = !on;
-  });
+  for (const view of document.querySelectorAll('.menu-view')) {
+    if (view.dataset.view === name) {
+      view.classList.remove('view-leaving');
+      view.hidden = false;
+      view.classList.add('active');
+      continue;
+    }
+    view.classList.remove('active');
+    // 旧视图先淡出再隐藏，避免切换一闪而过；期间不接收点击。
+    if (view.hidden || view.classList.contains('view-leaving')) continue;
+    view.classList.add('view-leaving');
+    const finish = () => {
+      if (view.classList.contains('active')) return; // 淡出期间又切回本视图：不隐藏
+      view.hidden = true;
+      view.classList.remove('view-leaving');
+    };
+    view.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 400); // 动画被跳过（如 reduce-motion）时的兜底
+  }
   // 大厅 3D 角色画布仅首页显示，避免其它视图透出
   document.getElementById('menu')?.classList.toggle('on-home', name === 'home');
   const navIdByView = { home: 'menu-play-tab', inventory: 'menu-inventory', loadout: 'menu-loadout', shop: 'menu-shop', news: 'menu-news' };
