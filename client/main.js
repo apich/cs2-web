@@ -240,6 +240,7 @@ async function equipAgentToServer(agent){
 const loadoutView=new LoadoutView({root:document.querySelector('.view-loadout'),onEquipServer:async (skin,team)=>{if(connected)await equipSkin(skin,team);},onEquipAgent:equipAgentToServer});
 // 库存视图（图 4）：搜索/筛选/排序 + 详情侧栏装备
 const inventoryView=new InventoryView({root:document.querySelector('.view-inventory'),onEquipServer:async (skin,team)=>{if(connected)await equipSkin(skin,team);},onOpenAgents:()=>document.dispatchEvent(new CustomEvent('loadout-open-agents',{detail:{team:'CT'}}))});
+registerEscapeLayer({id:'inventory-detail',element:inventoryView.root.querySelector('.inv-detail'),priority:10,close:()=>inventoryView.closeDetail(),when:()=>!inventoryView.root.hidden&&!$('menu').hidden});
 const agentsUI=new AgentMenu({onEquip:equipAgentToServer});
 // 探员装备变化 → 大厅展示模型跟随（plan：大厅展示已装备的探员皮肤）
 document.addEventListener('agent-menu-closed',()=>lobbyShowcase?.refreshAgents?.());
@@ -738,14 +739,14 @@ $('mode').addEventListener('change',updateModeLabels);updateModeLabels();
 $('host-bots-apply')?.addEventListener('click',()=>{send({type:'setBots',bots:Number($('host-bots').value)});});
 $('menu-play-tab')?.addEventListener('click',()=>showModeSelect());
 for(const [id,view] of [['menu-inventory','inventory'],['menu-loadout','loadout'],['menu-shop','shop'],['menu-news','news']]){
-  $(id)?.addEventListener('click',()=>{showView(view);hideModeSelect();});
+  $(id)?.addEventListener('click',()=>{showView(view);hideModeSelect();if(view==='inventory')inventoryView.refresh();if(view==='loadout')loadoutView.render();});
 }
 // ---- 顶栏图标行（morphicons）：首页 / 新闻 / 设置 / 退出游戏 / 好友 ----
 mountMorphIcons();
 // 账户：名牌点击登录；有令牌则自动登录并把账户档案同步进 localStorage
 mountAccountUI();
 restoreSession();
-$('menu-home')?.addEventListener('click',()=>{showView('home');hideModeSelect();});
+$('menu-home')?.addEventListener('click',()=>{showView('home');hideModeSelect();inventoryView.refresh();});
 $('menu-news-tab')?.addEventListener('click',()=>{showView('news');hideModeSelect();});
 $('menu-exit')?.addEventListener('click',()=>{
   if(!confirm('退出游戏并关闭页面？'))return;
@@ -838,7 +839,7 @@ registerEscapeLayer({id:'mode-select',element:$('mode-select'),priority:40,close
 // 首页子页签（库存/武器装备/商店/新闻）：Esc 回到"开始"页。
 // 优先级最低，只有其他弹层都关掉后才轮到它；#menu 在首页始终可见，
 // 所以用 when 限定"当前不在首页视图"——对局中 #menu 是隐藏的，自然不会触发。
-registerEscapeLayer({id:'menu-view',element:$('menu'),priority:0,close:()=>showView('home'),when:()=>!$('menu').classList.contains('on-home')});
+registerEscapeLayer({id:'menu-view',element:$('menu'),priority:0,close:()=>{if(!$('menu').classList.contains('on-home'))inventoryView.refresh();showView('home');},when:()=>!$('menu').classList.contains('on-home')});
 pointerMenus.push(lobby.element);pointerGuard.observe(lobby.element,{attributes:true,attributeFilter:['hidden']});
 
 function frame(now){
