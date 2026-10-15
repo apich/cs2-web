@@ -5,7 +5,7 @@
 // 探员与枪械皮肤共用同一套底部库存卡片：点探员槽过滤出该边探员，点/拖即装备。
 // 比赛可带枪械以 shared/weapons.js 的 TEAM_LOADOUTS 为准。
 import { setTeamSkin, getTeamLoadout, equippedSkinId, skinsForWeapon } from './team-loadout.js';
-import { getWeapon, TEAM_LOADOUTS } from '../shared/weapons.js';
+import { getWeapon, TEAM_LOADOUTS, canTeamUseWeapon } from '../shared/weapons.js';
 import { getSkin, SKINS, skinTypeName, skinFinishName } from '../shared/skins.js';
 import { AGENT_CATALOG, getAgent, normalizeAgentLoadout } from '../shared/agents.js';
 import { GLOVES, getGlove, DEFAULT_GLOVE } from '../shared/gloves.js';
@@ -14,7 +14,8 @@ import { loadAgent } from './player-assets.js';
 import { loadGloveArms } from './agent-arms.js';
 import { readAgentLoadout, saveAgentLoadout } from './agent-menu.js';
 import { mountMorphIcons } from './morph-icons.js';
-import { rarityOf } from './skin-rarity.js';
+import { rarityOf, rarityRank } from './skin-rarity.js';
+import { equipStateOf } from '../shared/inventory-query.js';
 import { preferences } from './persistence.js';
 import './loadout.css';
 
@@ -80,12 +81,13 @@ export class LoadoutView {
     this.busy = false;
     this.downloaded = new Set();
     this.activeTeam = 'CT';
+    this.sort = 'default';
     this.selection = null; // {weapon} | null
     root.innerHTML = `
       <div class="loadout-screen">
         <div class="loadout-upper">
           <section class="loadout-side side-ct" data-side="CT">
-            <header class="loadout-side-head"><span class="loadout-team-chip">CT</span><div><b>反恐精英</b><small>装备 CT</small></div></header>
+            <header class="loadout-side-head"><button type="button" class="loadout-team-switch" aria-label="选择反恐精英装备">装备 CT</button></header>
             <div class="loadout-side-body"></div>
           </section>
           <div class="loadout-center">
@@ -94,20 +96,21 @@ export class LoadoutView {
             <div class="loadout-ghosts" aria-hidden="true"></div>
           </div>
           <section class="loadout-side side-t" data-side="T">
-            <header class="loadout-side-head"><span class="loadout-team-chip">T</span><div><b>恐怖分子</b><small>装备 T</small></div></header>
+            <header class="loadout-side-head"><button type="button" class="loadout-team-switch" aria-label="选择恐怖分子装备">装备 T</button></header>
             <div class="loadout-side-body"></div>
           </section>
         </div>
         <div class="loadout-inventory">
           <header class="inv-toolbar">
             <button type="button" class="inv-filter" id="inv-show-all"><span class="mi" data-icon="filter"></span><span class="inv-filter-label">所有物品</span></button>
-            <button type="button" class="inv-sort"><span class="mi" data-icon="sort"></span><span>最新</span></button>
+            <select class="inv-sort" aria-label="装备库存排序"><option value="default">默认顺序</option><option value="name">名称</option><option value="rarity">稀有度</option></select>
           </header>
           <div class="inv-grid"></div>
           <div class="inv-status" role="status"></div>
         </div>
       </div>`;
     mountMorphIcons(root);
+    root.querySelector('.inv-sort').addEventListener('change', e => { this.sort = e.target.value; this.renderInventory(); });
     root.querySelector('#inv-show-all').addEventListener('click', () => { this.selection = null; this.statusMessage = ''; this.renderCenter(); this.renderInventory(); });
     for (const side of root.querySelectorAll('.loadout-side')) {
       side.addEventListener('click', () => {
@@ -132,11 +135,13 @@ export class LoadoutView {
   }
 
   render() {
+    this.root.querySelector('.loadout-screen').dataset.team = this.activeTeam;
     // 两侧人物/槽位常驻，仅刷新装备预览；布局不动
     const agents = readAgentLoadout();
     for (const team of ['CT', 'T']) {
       const side = this.root.querySelector(`.loadout-side[data-side="${team}"]`);
       side.classList.toggle('is-selected', this.activeTeam === team);
+      side.querySelector('.loadout-team-switch').setAttribute('aria-pressed', String(this.activeTeam === team));
       const body = side.querySelector('.loadout-side-body');
       body.innerHTML = `<img class="loadout-character" src="${agentPreview(agents[team] || (team === 'CT' ? 'ct-sas' : 't-phoenix'))}" alt="${TEAM_LABEL[team]} 探员">${slotsHTML(team, agents)}`;
     }
@@ -237,7 +242,10 @@ export class LoadoutView {
   renderCenter() {
     const team = this.activeTeam;
     for (const ghosts of this.root.querySelectorAll('.loadout-ghosts')) {
-      ghosts.innerHTML = ['pistol', 'elite', 'knife', 'ak47', 'awp'].map(id => `<img src="assets/ui-cs2/${id}.svg" alt="">`).join('');
+      const icons = ghosts === this.root.querySelector('.loadout-ghosts')
+        ? ['helmet', 'defusekit', 'pistol', 'knife']
+        : ['flashbang', 'hegrenade', 'smokegrenade', team === 'CT' ? 'incgrenade' : 'molotov', 'decoy'];
+      ghosts.innerHTML = icons.map(id => `<img src="assets/ui-cs2/${id}.svg" alt="">`).join('');
     }
     const cats = this.root.querySelector('.loadout-cats');
     cats.replaceChildren();
@@ -293,6 +301,9 @@ export class LoadoutView {
     const agents = readAgentLoadout();
     const equippedGlove = readGloveLoadout();
     const list = this.inventoryItems();
+    const nameOf = item => (item.skin || item.agent || item.glove).name;
+    if (this.sort === 'name') list.sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'zh-Hans-CN'));
+    if (this.sort === 'rarity') list.sort((a, b) => (b.skin ? rarityRank(b.skin) : -1) - (a.skin ? rarityRank(a.skin) : -1));
     for (const item of list) {
       const card = document.createElement('button');
       card.type = 'button';
@@ -334,11 +345,22 @@ export class LoadoutView {
         card.addEventListener('dragend', () => { this.draggingAgentId = null; card.classList.remove('dragging'); });
       } else {
         const skin = item.skin;
+        const state = equipStateOf(skin, { ct: getTeamLoadout('CT'), t: getTeamLoadout('T') });
         card.className = 'inv-item' + (equipped[skin.weapon] === skin.id ? ' selected' : '');
         card.dataset.skinId = skin.id;
         card.innerHTML = `
           <span class="inv-thumb"><img src="${skin.preview}" alt="${skin.name}" loading="lazy"><i class="rarity-bar" style="background:${rarityOf(skin)}"></i></span>
           <b>${typeName(skin)}</b><small>${skinFinishName(skin)}</small>`;
+        const marks = document.createElement('span');
+        marks.className = 'loadout-equipped-marks';
+        marks.setAttribute('aria-hidden', 'true');
+        for (const team of ['ct', 't']) {
+          if (state !== `equipped-${team}` && state !== 'equipped-both') continue;
+          const dot = document.createElement('i');
+          dot.className = `dot-${team}`;
+          marks.append(dot);
+        }
+        card.querySelector('.inv-thumb').append(marks);
         card.addEventListener('click', () => this.equip(skin));
         card.addEventListener('dragstart', e => {
           e.dataTransfer.setData('text/plain', skin.id);
@@ -362,7 +384,7 @@ export class LoadoutView {
   invStatus(text) { this.statusMessage = text; const el = this.root.querySelector('.inv-status'); if (el) el.textContent = text; }
 
   async equip(skin) {
-    if (this.busy) return;
+    if (this.busy || !canTeamUseWeapon(this.activeTeam, skin.weapon)) return;
     this.busy = true;
     this.renderInventory();
     const team = this.activeTeam;
@@ -378,8 +400,8 @@ export class LoadoutView {
         const bytes = typeof p === 'number' ? p : p?.bytes || p?.loaded || 0;
         this.invStatus(`下载 ${skin.name} · ${Math.min(100, Math.round(bytes / skin.bytes * 100))}%`);
       }});
-      setTeamSkin(team, skin.weapon, skin.id);
       await this.onEquipServer(skin, team);
+      setTeamSkin(team, skin.weapon, skin.id);
       this.statusMessage = `已装备 ${skin.name}（${TEAM_LABEL[team]}）`;
       this.render();
     } catch (error) {
